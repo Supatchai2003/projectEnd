@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เพิ่มบัญชีแอดมิน</title>
+  <link rel="stylesheet" href="M_admin_add.css">
+</head>
+<body>
+
+  <h1 class="title">จัดการบัญชีแอดมิน</h1>
+
+  <div class="form-box">
+    <h2>เพิ่มบัญชีแอดมิน</h2>
+    <input type="text" id="name" placeholder="ชื่อ-นามสกุล แอดมิน">
+    <input type="text" id="username" placeholder="ชื่อเข้าใช้งาน">
+    <input type="password" id="password" placeholder="รหัสผ่าน">
+
+    <div class="button-row">
+      <button class="cancel-btn" onclick="cancel()">ยกเลิก</button>
+      <button class="add-btn" onclick="addAdmin()">เพิ่มบัญชี</button>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="M_admin_add.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>แก้ไขบัญชีแอดมิน</title>
+  <link rel="stylesheet" href="M_editadmin.css">
+</head>
+<body>
+
+  <h1 class="title">จัดการบัญชีแอดมิน</h1>
+
+  <div class="form-box">
+    <button class="delete-btn" onclick="deleteAdmin()">ลบบัญชี</button>
+    <h2>แก้ไขบัญชีแอดมิน</h2>
+
+    <label for="name">ชื่อของแอดมิน</label>
+    <input type="text" id="name" placeholder="ชื่อ-นามสกุล">
+
+    <label for="username">ชื่อผู้ใช้งาน</label>
+    <input type="text" id="username" disabled>
+
+    <label for="password">รหัสผ่าน</label>
+    <div class="password-wrapper">
+      <input type="password" id="password" placeholder="รหัสผ่าน">
+    </div>
+
+    <div class="button-row">
+      <button class="cancel-btn" onclick="cancel()">ยกเลิก</button>
+      <button class="save-btn" onclick="updateAdmin()">ยืนยัน</button>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="M_editadmin.js"></script>
+</body>
+</html>

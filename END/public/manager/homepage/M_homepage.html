@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เมนูแผงควบคุม</title>
+  <link rel="stylesheet" href="M_homepage.css">
+</head>
+<body>
+
+  <h1 class="title">เมนูแผงควบคุม</h1>
+
+  <div class="menu-box">
+    <div class="hamburger-icon" onclick="toggleMenu()">☰</div>
+    <h2>รายการ</h2>
+    <div class="button-group">
+      <button onclick="goToAdmins()">จัดการบัญชีแอดมิน</button>
+      <button onclick="goToDevices()">จัดการอุปกรณ์</button>
+    </div>
+  </div>
+
+  <div class="hamburger-menu" id="menu">
+    <button onclick="goHome()">🏠 หน้าแรก</button>
+    <button onclick="logout()">🚪 ออกจากระบบ</button>
+  </div>
+
+  <script src="M_homepage.js"></script>
+</body>
+</html>

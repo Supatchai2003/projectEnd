@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>จัดการบัญชีแอดมิน</title>
+  <link rel="stylesheet" href="M_admin_list.css">
+</head>
+<body>
+
+  <h1 class="title">จัดการบัญชีแอดมิน</h1>
+
+  <div class="admin-box">
+    <div class="hamburger-icon" onclick="toggleMenu()">☰</div>
+    <h2>บัญชีแอดมินทั้งหมด</h2>
+    <div id="admin-list" class="admin-list"></div>
+  </div>
+
+  <button class="add-btn" onclick="goToAdd()">＋</button>
+
+  <div class="hamburger-menu" id="menu">
+    <button onclick="goHome()">🏠 หน้าแรก</button>
+    <button onclick="logout()">🚪 ออกจากระบบ</button>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  
+  <script src="M_admin_list.js"></script>
+</body>
+</html>
