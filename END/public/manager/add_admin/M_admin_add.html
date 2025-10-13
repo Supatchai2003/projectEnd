@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>เพิ่มบัญชีแอดมิน</title>
-  <link rel="stylesheet" href="M_admin_add.css" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="M_admin_add.css">
 </head>
 <body>
 
@@ -12,58 +11,9 @@
 
   <div class="form-box">
     <h2>เพิ่มบัญชีแอดมิน</h2>
-
-    <!-- บัญชี -->
-    <input type="text" id="username" placeholder="ชื่อเข้าใช้งาน" autocomplete="username" />
-    <input type="password" id="password" placeholder="รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)" autocomplete="new-password" />
-    <input type="text" id="name" placeholder="ชื่อ-นามสกุล แอดมิน" />
-
-    <!-- เพศ -->
-    <select id="gender">
-      <option value="">-- เลือกเพศ --</option>
-      <option value="ชาย">ชาย</option>
-      <option value="หญิง">หญิง</option>
-    </select>
-
-    <!-- ติดต่อ -->
-    <input type="email" id="gmail" placeholder="อีเมล" autocomplete="email" />
-    <input type="tel" id="phone" placeholder="เบอร์โทรศัพท์ (เช่น 062-5437777)" />
-
-    <!-- ที่อยู่ -->
-    <div class="address-group">
-      <input type="text" id="province" placeholder="จังหวัด" />
-      <input type="text" id="district" placeholder="อำเภอ" />
-      <input type="text" id="sub_district" placeholder="ตำบล" />
-      <input type="text" id="postal_code" placeholder="รหัสไปรษณีย์" inputmode="numeric" />
-    </div>
-    <!-- popup: ไม่มีสิทธิ์ -->
-<div id="popup-noauth" class="popup">
-  <div class="popup-content popup-error">
-    <p class="popup-message">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</p>
-    <button class="popup-ok">ตกลง</button>
-  </div>
-</div>
-
-<!-- popup: เพิ่มสำเร็จ -->
-<div id="popup-success" class="popup">
-  <div class="popup-content popup-success">
-    <p class="popup-message">เพิ่มบัญชีแอดมินสำเร็จ</p>
-    <button class="popup-ok">ตกลง</button>
-  </div>
-</div>
-
-<!-- popup: ข้อผิดพลาด -->
-<div id="popup-error" class="popup">
-  <div class="popup-content popup-error">
-    <p class="popup-message">เกิดข้อผิดพลาด</p>
-    <button class="popup-ok">ตกลง</button>
-  </div>
-</div>
-
-
-    <p style="font-size:12px;opacity:.75;margin-top:6px;">
-      * <strong>Server</strong> จะตั้งค่า <strong>role</strong> และบันทึก <strong>hireday</strong> ให้อัตโนมัติ
-    </p>
+    <input type="text" id="name" placeholder="ชื่อ-นามสกุล แอดมิน">
+    <input type="text" id="username" placeholder="ชื่อเข้าใช้งาน">
+    <input type="password" id="password" placeholder="รหัสผ่าน">
 
     <div class="button-row">
       <button class="cancel-btn" onclick="cancel()">ยกเลิก</button>
@@ -71,6 +21,8 @@
     </div>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="M_admin_add.js"></script>
 </body>
 </html>
