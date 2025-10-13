@@ -74,10 +74,30 @@
     <button onclick="goHome()">🏠 หน้าแรก</button>
     <button onclick="logout()">🚪 ออกจากระบบ</button>
   </div>
+<!-- popup: success -->
+<div id="popup-success" class="popup">
+  <div class="popup-content popup-success">
+    <p class="popup-message">ดำเนินการสำเร็จ</p>
+    <button class="popup-ok">ตกลง</button>
+  </div>
+</div>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<!-- popup: error -->
+<div id="popup-error" class="popup">
+  <div class="popup-content popup-error">
+    <p class="popup-message">เกิดข้อผิดพลาด</p>
+    <button class="popup-ok">ตกลง</button>
+  </div>
+</div>
+
+<!-- popup: confirm (กดตกลงเพื่อยืนยันการลบ) -->
+<div id="popup-confirm" class="popup">
+  <div class="popup-content popup-error">
+    <p class="popup-message">ยืนยันการดำเนินการนี้?</p>
+    <button class="popup-ok">ตกลง</button>
+  </div>
+</div>
+
   <script src="device_list.js"></script>
 </body>
 

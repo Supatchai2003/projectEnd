@@ -11,8 +11,8 @@
 </head>
 
 <body>
-  // ส่วนของการล็อกอิน
- <div class="login-container">
+
+  <div class="login-container">
     <img src="image/7b12d287221c0adf5b4efcdf326c178f.jpg" alt="User Icon" class="avatar">
     <h1>ล็อกอิน</h1>
     <form id="loginForm">
@@ -24,13 +24,19 @@
         <span class="icon">🔒</span>
         <input type="password" id="pwd" placeholder="รหัสผ่าน" required>
       </div>
-      <div class="forgot-password">
-        <a href="#">ลืมรหัสผ่าน ?</a>
-      </div>
       <button type="submit" class="btn-login">ล็อกอิน</button>
     </form>
   </div>
+  <!-- ✅ Popup -->
+  <div id="popup" class="popup">
+    <div id="popup-content" class="popup-content">
+      <p id="popup-message"></p>
+      <button id="popup-ok">ตกลง</button>
+    </div>
+  </div>
+
   <script src="index.js"></script>
+
 
 </body>
 
