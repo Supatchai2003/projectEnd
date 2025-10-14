@@ -5,16 +5,50 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
 const bcrypt = require("bcrypt");
-const serviceAccount = require("./serviceAccountKey.json");
 
 // ===================== Firebase =====================
-admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+const saJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+let credential;
+if (saJson) {
+  try { credential = admin.credential.cert(JSON.parse(saJson)); }
+  catch (e) {
+    console.error("Invalid FIREBASE_SERVICE_ACCOUNT_JSON", e);
+    process.exit(1);
+  }
+} else {
+  try {
+    // ใช้เฉพาะตอน dev ในเครื่องเท่านั้น
+    const localKey = require("./serviceAccountKey.json");
+    credential = admin.credential.cert(localKey);
+    console.warn("[WARN] Using local serviceAccountKey.json. Do NOT commit this file!");
+  } catch (e) {
+    console.error("No service account provided. Set FIREBASE_SERVICE_ACCOUNT_JSON env.");
+    process.exit(1);
+  }
+}
+admin.initializeApp({ credential });
+
 const db = admin.firestore();
 
 // ===================== App =====================
 const app = express();
-app.use(cors());
+const allowedOrigins = [
+  "https://project-e8970.web.app",
+  "https://project-e8970.firebaseapp.com",
+  process.env.CORS_EXTRA_ORIGIN || ""  // เผื่อมีโดเมนเพิ่ม
+].filter(Boolean);
+
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin) return cb(null, true);     // อนุญาต server-to-server / curl
+    return cb(null, allowedOrigins.includes(origin));
+  },
+  credentials: true,
+}));
+
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+
 
 // Health check
 app.get("/health", (_req, res) => res.json({ ok: true }));
@@ -141,7 +175,6 @@ app.put("/update-user/:id", async (req, res) => {
       if (String(password).length < 8) {
         return res.status(400).json({ success:false, message:"รหัสผ่านต้อง ≥ 8 ตัวอักษร" });
       }
-      const bcrypt = require("bcryptjs");
       const hash = await bcrypt.hash(String(password), 10);
       updates.password = hash;
     }
@@ -404,4 +437,5 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // ===================== Start =====================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// -------- END/server.js --------

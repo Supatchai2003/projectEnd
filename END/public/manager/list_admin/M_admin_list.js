@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000"; // URL backend ของคุณ
+const API_BASE = "https://project-e8970.web.app"; // URL backend ของคุณ
 
 async function loadAdmins() {
   const container = document.getElementById("admin-list");

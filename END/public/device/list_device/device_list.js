@@ -1,5 +1,5 @@
 // ===== Base URL ของ backend =====
-const API_BASE = "http://localhost:3000";
+const API_BASE = "https://project-e8970.web.app";
 
 // ===== Popup Helper (เหมือนเดิม) =====
 function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {

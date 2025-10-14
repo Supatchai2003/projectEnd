@@ -1,5 +1,5 @@
 // ===== CONFIG =====
-const API_BASE = "http://localhost:3000"; // เปลี่ยนตามพอร์ต/โดเมน backend
+const API_BASE = "https://project-e8970.web.app"; // เปลี่ยนตามพอร์ต/โดเมน backend
 
 // ===== POPUP helper =====
 function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {
