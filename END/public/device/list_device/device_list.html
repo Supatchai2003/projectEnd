@@ -1,39 +1,63 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>จัดการอุปกรณ์</title>
-  <link rel="stylesheet" href="device_list.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="device_list.css"/>
 </head>
 
 <body>
+  <!-- ส่วนหัว + ปุ่มออกจากระบบ (กึ่งกลาง) -->
+<header class="header-bar">
+  <h1 class="page-title">เมนูการจัดการอุปกรณ์</h1>
+  <button class="logout-btn" onclick="logout()">ออกจากระบบ</button>
+</header>
 
-  <h1 class="title">จัดการอุปกรณ์</h1>
 
-  <div class="device-container">
-    <div class="header">
-      <div class="hamburger" onclick="toggleMenu()">☰</div>
-      <h2>อุปกรณ์ทั้งหมด</h2>
-      <div class="actions">
-        <button class="icon-btn" onclick="showHistoryPopup()">🕒</button>
+  <div class="page-wrap">
+    <!-- แผงซ้าย -->
+    <aside class="left-panel">
+      <div><span>สิทธิ์ผู้ใช้งาน :</span> <span class="role-label" id="role-label">User</span></div>
+
+      <div class="mascot-card">
+        <img src="../../image/icon cctv.jpg" alt="mascot" />
       </div>
-    </div>
-    <div id="device-list" class="device-list"></div>
+    </aside>
+
+    <!-- แผงขวา -->
+    <main class="right-panel">
+      <div class="list-card">
+        <div class="list-card__header">
+          <h2>อุปกรณ์ทั้งหมด</h2>
+          <div class="header-actions">
+            <button class="icon-btn" title="เลือกดูประวัติ" onclick="showHistoryPopup()">🕒</button>
+          </div>
+        </div>
+
+        <!-- รายการอุปกรณ์ -->
+        <div id="device-list" class="device-list"></div>
+      </div>
+
+      <!-- ปุ่มย้อนกลับ -->
+      <button class="back-btn" onclick="goHome()">ย้อนกลับ</button>
+    </main>
   </div>
 
-  <!-- ปุ่มเพิ่ม -->
-  <button class="add-btn" onclick="showPopup()">＋</button>
+  <!-- ปุ่ม + ล่างขวา -->
+  <button class="fab-add" title="เพิ่มอุปกรณ์" onclick="showPopup()">＋</button>
 
   <!-- Popup เพิ่มอุปกรณ์ -->
   <div class="popup-overlay" id="popup">
     <div class="popup-box">
       <h3>เพิ่มอุปกรณ์</h3>
-      <input type="text" id="piid" placeholder="ใส่ Serial ID">
+      <input type="text" id="piid" placeholder="ใส่ Serial ID" />
       <div class="popup-buttons">
-        <button class="cancel-btn" onclick="hidePopup()">ยกเลิก</button>
-        <button class="confirm-btn" onclick="addDevice()">ยืนยัน</button>
+        <button class="popup-cancel" onclick="hidePopup()">ยกเลิก</button>
+        <button class="popup-ok" onclick="addDevice()">ยืนยัน</button>
       </div>
     </div>
   </div>
@@ -42,10 +66,10 @@
   <div class="popup-overlay" id="history-popup">
     <div class="popup-box">
       <h3>เลือกดูประวัติ</h3>
-      <button class="history-option" onclick="goToHistory('summary')">📊 สรุปสถิติ</button>
-      <button class="history-option" onclick="goToHistory('daily')">📅 รายวัน เวลา</button>
+      <button class="popup-ok" onclick="goToHistory('summary')">📊 สรุปสถิติ</button>
+      <button class="popup-ok" onclick="goToHistory('daily')">📅 รายวัน เวลา</button>
       <div class="popup-buttons">
-        <button class="cancel-btn" onclick="hideHistoryPopup()">ยกเลิก</button>
+        <button class="popup-cancel" onclick="hideHistoryPopup()">ยกเลิก</button>
       </div>
     </div>
   </div>
@@ -56,48 +80,48 @@
       <h3>รายละเอียดอุปกรณ์</h3>
 
       <div class="field"><label>Ip Server :</label> <span id="v-ip"></span></div>
-      <div class="field"><label>Serial ID :</label> <input id="v-serial" type="text"></div>
+      <div class="field"><label>Serial ID :</label> <input id="v-serial" type="text" /></div>
       <div class="field"><label>สถานะ :</label> <span id="v-status"></span></div>
       <div class="field"><label>วันที่เริ่มใช้งาน :</label> <span id="v-date"></span></div>
 
       <div class="popup-buttons">
-        <button class="delete-btn" onclick="deleteDevice()">ลบอุปกรณ์</button>
-        <button class="cancel-btn" onclick="hideEditPopup()">ยกเลิก</button>
-        <button class="confirm-btn" onclick="confirmEdit()">ยืนยัน</button>
+        <button class="popup-cancel" onclick="hideEditPopup()">ยกเลิก</button>
+        <button class="popup-ok" onclick="confirmEdit()">ยืนยัน</button>
+        <button class="popup-cancel" style="background:#e74c3c" onclick="deleteDevice()">ลบอุปกรณ์</button>
       </div>
     </div>
   </div>
 
-  <!-- เมนู -->
-  <div class="hamburger-menu" id="menu">
-    <button onclick="goHome()">🏠 หน้าแรก</button>
-    <button onclick="logout()">🚪 ออกจากระบบ</button>
+  <!-- Toast/Popup แจ้งผล -->
+  <div id="popup-success" class="popup">
+    <div class="popup-content popup-success">
+      <p class="popup-message">ดำเนินการสำเร็จ</p>
+      <button class="popup-ok">ตกลง</button>
+    </div>
   </div>
-<!-- popup: success -->
-<div id="popup-success" class="popup">
-  <div class="popup-content popup-success">
-    <p class="popup-message">ดำเนินการสำเร็จ</p>
-    <button class="popup-ok">ตกลง</button>
-  </div>
-</div>
 
-<!-- popup: error -->
-<div id="popup-error" class="popup">
-  <div class="popup-content popup-error">
-    <p class="popup-message">เกิดข้อผิดพลาด</p>
-    <button class="popup-ok">ตกลง</button>
+  <div id="popup-error" class="popup">
+    <div class="popup-content popup-error">
+      <p class="popup-message">เกิดข้อผิดพลาด</p>
+      <button class="popup-ok">ตกลง</button>
+    </div>
   </div>
-</div>
 
-<!-- popup: confirm (กดตกลงเพื่อยืนยันการลบ) -->
-<div id="popup-confirm" class="popup">
-  <div class="popup-content popup-error">
-    <p class="popup-message">ยืนยันการดำเนินการนี้?</p>
-    <button class="popup-ok">ตกลง</button>
+  <div id="popup-confirm" class="popup">
+    <div class="popup-content popup-error">
+      <p class="popup-message">ยืนยันการดำเนินการนี้?</p>
+      <button class="popup-ok">ตกลง</button>
+    </div>
   </div>
-</div>
+
+  <!-- Popup -->
+  <div id="popup-logout" class="popup">
+    <div class="popup-content">
+      <p id="popup-message">ออกจากระบบเรียบร้อยแล้ว</p>
+      <button id="popup-ok">ตกลง</button>
+    </div>
+  </div>
 
   <script src="device_list.js"></script>
 </body>
-
 </html>

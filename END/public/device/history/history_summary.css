@@ -1,79 +1,234 @@
-body {
-  margin: 0;
-  background: linear-gradient(135deg, #0f5c7f, #005f73);
-  font-family: 'Sarabun', sans-serif;
-  color: black;
-  text-align: center;
+/* ====== Thai UI — History Summary (Glass/Soft) ====== */
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --bg1: #0f5c7f;
+  --bg2: #005f73;
+  --ink: #09313f;
+  --muted: #5a6b7d;
+
+  --glass1: rgba(255, 255, 255, .60);
+  --glass2: rgba(255, 255, 255, .38);
+  --glass-border: rgba(255, 255, 255, .55);
+
+  --chip: #e8fbff;
+  --chip-text: #064a57;
+
+  --brand: #18c6c7;
+  /* ฟ้าเขียวสด (ปุ่ม/เส้นเน้น) */
+  --brand-2: #27d7e5;
+  /* ไล่เฉด */
+  --accent: #0aa7b3;
+  /* เส้น/โฮเวอร์ */
+  --danger: #ff3b30;
+  /* ปุ่มอันตราย (ถ้าใช้) */
+
+  --table-border: #e7eef2;
+  --shadow-lg: 0 18px 42px rgba(0, 0, 0, .28);
+  --shadow-md: 0 10px 24px rgba(0, 0, 0, .18);
 }
 
+/* ====== Page ====== */
+* {
+  box-sizing: border-box
+}
+
+html,
+body {
+  height: 100%
+}
+
+body {
+  margin: 0;
+  font-family: 'Sarabun', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 85% 10%, rgba(255, 255, 255, .08), transparent 60%),
+    linear-gradient(135deg, var(--bg1), var(--bg2));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ====== Headings ====== */
 .title {
-  color: white;
-  font-size: 26px;
-  margin-top: 20px;
+  color: #fff;
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: .2px;
+  margin: 22px 0 6px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
 }
 
 .subtitle {
-  background-color: #b3ecf2;
-  padding: 10px 0;
-  font-size: 20px;
-  margin: 0;
+  display: inline-block;
+  margin: 0 0 14px;
+  padding: 8px 16px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--chip-text);
+  background: var(--chip);
+  border: 1px solid rgba(6, 74, 87, .18);
+  border-radius: 999px;
 }
 
+/* ====== Filter Bar (glass + pill controls) ====== */
 .filter-bar {
-  background-color: #b3ecf2;
-  padding: 20px;
+  width: min(1100px, 94vw);
+  margin: 6px auto 18px;
+  padding: 14px;
   display: flex;
   justify-content: center;
-  gap: 15px;
+  gap: 12px;
   flex-wrap: wrap;
+
+  background: linear-gradient(180deg, var(--glass1), var(--glass2));
+  backdrop-filter: saturate(140%) blur(8px);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
 }
 
+/* custom select */
 select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  position: relative;
+
   font-size: 16px;
-  padding: 10px 20px;
-  border-radius: 15px;
-  border: none;
-  background-color: #0055a5;
-  color: white;
+  font-weight: 800;
+  padding: 12px 44px 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, .06);
+  color: #000000;
+  background:
+    linear-gradient(180deg, var(--brand-2), var(--brand)),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='white'><path d='M7 10l5 5 5-5z'/></svg>") no-repeat right 12px center;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .16);
   cursor: pointer;
 }
 
+select:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(39, 215, 229, .28), 0 6px 14px rgba(0, 0, 0, .16)
+}
+
+select:hover {
+  filter: brightness(1.03)
+}
+
+/* ====== Table Card ====== */
 .table-wrapper {
-  background: white;
-  max-width: 600px;
-  margin: 20px auto;
-  padding: 10px;
-  border-radius: 20px;
+  width: min(900px, 94vw);
+  margin: 0 auto 22px;
+  background: #fff;
+  border-radius: 22px;
+  border: 1px solid rgba(0, 0, 0, .06);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
-th, td {
-  padding: 12px;
-  border: 1px solid black;
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, #f7fbfd, #eef6f9);
+  color: #083a46;
+  font-size: 16px;
+  font-weight: 900;
+  text-align: left;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--table-border);
 }
 
-th {
-  background-color: #eaeaea;
-  font-weight: bold;
+tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--table-border);
+  font-weight: 700;
 }
 
+tbody tr:nth-child(odd) td {
+  background: #fafcfd
+}
+
+tbody tr:hover td {
+  background: #eefbff;
+  transition: background .18s ease;
+}
+
+/* counter badge */
+tbody td:last-child {
+  width: 40%;
+}
+
+tbody td:last-child::after {
+  content: "";
+}
+
+/* ====== Back Button ====== */
 .back-btn {
-  margin: 30px auto;
+  margin: 8px auto 34px;
   display: block;
-  background-color: #4dd0e1;
   border: none;
-  padding: 12px 30px;
-  border-radius: 25px;
+  border-radius: 999px;
+  padding: 14px 28px;
   font-size: 18px;
-  font-weight: bold;
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(180deg, var(--brand-2), var(--brand));
+  box-shadow: 0 14px 30px rgba(39, 215, 229, .35);
   cursor: pointer;
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
 }
 
 .back-btn:hover {
-  background-color: #00acc1;
-  color: white;
+  transform: translateY(-1px);
+  filter: brightness(1.03)
+}
+
+.back-btn:active {
+  transform: translateY(0)
+}
+
+.back-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(39, 215, 229, .28), 0 14px 30px rgba(39, 215, 229, .35)
+}
+
+/* ====== Responsive ====== */
+@media (max-width:720px) {
+  .title {
+    font-size: 30px
+  }
+
+  thead th,
+  tbody td {
+    padding: 12px 14px
+  }
+}
+
+@media (max-width:480px) {
+  .filter-bar {
+    padding: 12px
+  }
+
+  select {
+    width: 100%;
+    max-width: 100%
+  }
+}
+
+/* ====== Motion Care ====== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important
+  }
 }

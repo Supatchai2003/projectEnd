@@ -1,207 +1,145 @@
-// ====== Config ======
-const API_BASE = "http://localhost:3000"; // ชี้ไปที่ server.js
+// ===== CONFIG =====
+const API_BASE = "http://localhost:3000"; // เปลี่ยนตามพอร์ต/โดเมน backend
 
-// ====== Popup Helper (รองรับหลาย popup ต่อหน้า) ======
+// ===== POPUP helper =====
 function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {
-  const popup = document.getElementById(id);
-  if (!popup) return;
-
-  const content = popup.querySelector(".popup-content");
-  const msgNode = popup.querySelector(".popup-message");
-  const okBtn = popup.querySelector(".popup-ok");
-
-  // สี/สถานะ
-  if (content) {
-    content.classList.remove("popup-success", "popup-error");
-    if (type === "success") content.classList.add("popup-success");
-    else if (type === "error") content.classList.add("popup-error");
-  }
-
-  // ข้อความ
-  if (message && msgNode) msgNode.textContent = message;
-
-  // แสดง
-  popup.style.display = "flex";
-
-  // กัน event ซ้อน
-  if (okBtn) {
-    const newOk = okBtn.cloneNode(true);
-    okBtn.replaceWith(newOk);
-    newOk.addEventListener("click", () => closePopup(id, onClose));
-  }
-
-  // ปิดอัตโนมัติ (ถ้ากำหนด)
-  if (autoCloseMs && autoCloseMs > 0) {
-    setTimeout(() => closePopup(id, onClose), autoCloseMs);
-  }
+  const el = document.getElementById(id); if (!el) return;
+  const msg = el.querySelector(".popup-message"); const ct = el.querySelector(".popup-content"); const ok = el.querySelector(".popup-ok");
+  if (ct) { ct.classList.remove("popup-success", "popup-error"); if (type === "success") ct.classList.add("popup-success"); if (type === "error") ct.classList.add("popup-error"); }
+  if (message && msg) msg.textContent = message;
+  el.style.display = "flex";
+  if (ok) { const n = ok.cloneNode(true); ok.replaceWith(n); n.addEventListener("click", () => closePopup(id, onClose)); }
+  if (autoCloseMs) { setTimeout(() => closePopup(id, onClose), autoCloseMs); }
 }
+function closePopup(id, onClose) { const el = document.getElementById(id); if (!el) return; el.style.display = "none"; if (typeof onClose === "function") onClose(); }
 
-function closePopup(id, onClose) {
-  const popup = document.getElementById(id);
-  if (!popup) return;
-  popup.style.display = "none";
-  if (typeof onClose === "function") onClose();
-}
-
-// ====== Gate สิทธิ์ ======
+// ===== ROLE guard =====
 const role = localStorage.getItem("role");
 if (role !== "superadmin") {
   openPopup("popup-noauth", {
     type: "error",
     autoCloseMs: 2000,
-    onClose: () => {
-      if (!role) window.location.href = "../../index.html";
-      else window.location.href = "../../device/list_device/device_list.html";
-    }
+    onClose: () => window.location.href = "../../index.html"
   });
 }
 
-// ====== Params ======
+// ===== PARAMS =====
 const userId = new URLSearchParams(window.location.search).get("id");
 
-// ====== Actions bound from HTML ======
-function cancel() {
-  window.location.href = "../../manager/list_admin/M_admin_list.html";
-}
+// ===== Actions =====
+function cancel() { window.location.href = "../../manager/list_admin/M_admin_list.html"; }
 
-function togglePassword() {
-  const pw = document.getElementById("password");
-  if (!pw) return;
-  pw.type = pw.type === "password" ? "text" : "password";
-}
-
-// ====== โหลดข้อมูลผู้ใช้ (ผ่าน backend) ======
+// ===== Load user =====
 async function loadAdmin() {
   try {
     const res = await fetch(`${API_BASE}/get-user/${userId}`);
     const json = await res.json();
+    if (!res.ok || !json.success) { openPopup("popup-loadfail", { type: "error", autoCloseMs: null }); return; }
+    const d = json.data || {};
 
-    if (!res.ok || !json.success) {
-      openPopup("popup-loadfail", { type: "error", autoCloseMs: null });
-      return;
-    }
+    // เติมค่า
+    document.getElementById("name").value = d.name || "";
+    document.getElementById("username").value = d.username || "";
+    document.getElementById("gender").value = d.gender || "";
+    document.getElementById("gmail").value = d.gmail || "";
+    document.getElementById("phone").value = d.phone || "";
 
-    const data = json.data || {};
-    document.getElementById("name").value = data.name || "";
-    document.getElementById("username").value = data.username || "";
+    const addr = d.address || {};
+    document.getElementById("province").value = addr.province || "";
+    document.getElementById("district").value = addr.district || "";
+    document.getElementById("sub_district").value = addr.sub_district || "";
+    document.getElementById("postal_code").value = addr.postal_code || "";
   } catch (err) {
-    console.error("โหลดข้อมูลล้มเหลว:", err);
+    console.error(err);
     openPopup("popup-error", { message: "โหลดข้อมูลไม่สำเร็จ", type: "error", autoCloseMs: null });
   }
 }
 
-// ====== อัปเดตผู้ใช้ (ผ่าน backend เพื่อให้ bcrypt ทำงานฝั่ง server) ======
+// ===== Update user =====
 async function updateAdmin() {
   const name = document.getElementById("name").value.trim();
-  const password = document.getElementById("password").value.trim();
+  const pass = document.getElementById("password").value.trim();
+  const gender = document.getElementById("gender").value;
+  const gmail = document.getElementById("gmail").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const province = document.getElementById("province").value.trim();
+  const district = document.getElementById("district").value.trim();
+  const sub_district = document.getElementById("sub_district").value.trim();
+  const postal_code = document.getElementById("postal_code").value.trim();
 
-  if (!name) {
-    openPopup("popup-error", { message: "กรุณาระบุชื่อ", type: "error" });
-    return;
-  }
+  if (!name) { return openPopup("popup-error", { message: "กรุณาระบุชื่อ", type: "error" }); }
+  if (pass && pass.length < 8) { return openPopup("popup-error", { message: "รหัสผ่านต้อง ≥ 8 ตัวอักษร", type: "error" }); }
+  if (gmail && !/^\S+@\S+\.\S+$/.test(gmail)) { return openPopup("popup-error", { message: "อีเมลไม่ถูกต้อง", type: "error" }); }
 
-  // เตรียม payload ให้ server ตัดสินใจ hash
-  const body = { name };
-  if (password.length > 0) {
-    if (password.length < 8) {
-      openPopup("popup-error", { message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร", type: "error" });
-      return;
-    }
-    body.password = password; // ส่งไปให้ server.js hash ด้วย bcrypt
-  }
+  const payload = {
+    name, gender, gmail, phone,
+    address: { province, district, sub_district, postal_code }
+  };
+  if (pass) payload.password = pass; // ให้ server ทำ bcrypt
 
   try {
     const res = await fetch(`${API_BASE}/update-user/${userId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+      body: JSON.stringify(payload)
     });
     const json = await res.json();
-
     if (!res.ok || !json.success) {
-      openPopup("popup-error", {
-        message: json?.message || "บันทึกไม่สำเร็จ",
-        type: "error",
-        autoCloseMs: null
-      });
-      return;
+      return openPopup("popup-error", { message: json?.message || "บันทึกไม่สำเร็จ", type: "error", autoCloseMs: null });
     }
-
-    openPopup("popup-save", {
-      type: "success",
-      autoCloseMs: 1500,
-      onClose: () => window.location.href = "../../manager/list_admin/M_admin_list.html"
-    });
+    openPopup("popup-save", { type: "success", autoCloseMs: 1500, onClose: () => cancel() });
   } catch (err) {
-    console.error("อัปเดตล้มเหลว:", err);
+    console.error(err);
     openPopup("popup-error", { message: "บันทึกไม่สำเร็จ", type: "error", autoCloseMs: null });
   }
 }
 
-// ====== ลบบัญชีผู้ใช้ (ผ่าน backend) ======
-async function deleteAdmin() {
-  // ถ้ามี popup-confirm แยก ก็ใช้; ถ้าไม่มี ใช้ fallback ด้านล่าง
-  const confirmEl = document.getElementById("popup-confirm");
-  if (confirmEl) {
-    const okBtn = confirmEl.querySelector(".popup-ok");
-    const cancelBtn = confirmEl.querySelector(".popup-cancel");
+// ===== Delete user =====
+// แสดง popup ยืนยันก่อนลบ
+function deleteAdmin() {
+  const popup = document.getElementById("popup-confirm-delete");
+  popup.style.display = "flex";
 
-    if (okBtn) okBtn.replaceWith(okBtn.cloneNode(true));
-    if (cancelBtn) cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+  const confirmBtn = document.getElementById("btn-confirm-delete");
+  const cancelBtn = document.getElementById("btn-cancel-delete");
 
-    const newOk = confirmEl.querySelector(".popup-ok");
-    const newCancel = confirmEl.querySelector(".popup-cancel");
+  // ล้าง event เดิม (ป้องกันซ้ำ)
+  confirmBtn.onclick = null;
+  cancelBtn.onclick = null;
 
-    confirmEl.style.display = "flex";
-
-    newOk.addEventListener("click", async () => {
-      confirmEl.style.display = "none";
-      await doDelete();
-    });
-    newCancel.addEventListener("click", () => {
-      confirmEl.style.display = "none";
-    });
-  } else {
-    // fallback: ใช้ popup แจ้งก่อน แล้วค่อยลบเมื่อปิด
-    openPopup("popup-error", {
-      message: "คุณแน่ใจหรือไม่ที่จะลบผู้ใช้นี้?",
-      type: "error",
-      autoCloseMs: null,
-      onClose: async () => { await doDelete(); }
-    });
-  }
-
-  async function doDelete() {
+  confirmBtn.onclick = async () => {
+    popup.style.display = "none";
     try {
       const res = await fetch(`${API_BASE}/delete-user/${userId}`, { method: "DELETE" });
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        openPopup("popup-error", {
+        return openPopup("popup-error", {
           message: json?.message || "ลบไม่สำเร็จ",
           type: "error",
           autoCloseMs: null
         });
-        return;
       }
 
       openPopup("popup-delete", {
         type: "success",
-        autoCloseMs: 1500,
-        onClose: () => window.location.href = "../../manager/list_admin/M_admin_list.html"
+        autoCloseMs: 1200,
+        onClose: () => cancel()
       });
     } catch (err) {
-      console.error("ลบล้มเหลว:", err);
+      console.error(err);
       openPopup("popup-error", { message: "ลบไม่สำเร็จ", type: "error", autoCloseMs: null });
     }
-  }
+  };
+
+  cancelBtn.onclick = () => {
+    popup.style.display = "none";
+  };
 }
 
-// ====== Startup ======
-loadAdmin();
 
-// ====== Expose for HTML ======
+// start
+loadAdmin();
 window.cancel = cancel;
-window.togglePassword = togglePassword;
 window.updateAdmin = updateAdmin;
 window.deleteAdmin = deleteAdmin;

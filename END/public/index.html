@@ -1,33 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="descrition" content="เว็บไซต์นี้ สำหรับจัดการระบบการเพิ่มข้อมูลของ raspberry pi ">
-  <title>UNWELCOME CREATURE DETECTION SYSTEM</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบตรวจจับสิ่งมีชีวิตที่ไม่พึงประสงค์</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css" />
   <link rel="icon" type="image/png" href="image/icon cctv.jpg">
-  <link rel="stylesheet" href="index.css">
 </head>
-
 <body>
+  <main class="frame">
+    <!-- ซ้าย: การ์ตูนกล้องในกรอบขาวมุมโค้ง -->
+    <section class="left">
+      <div class="left-card">
+        <!-- เปลี่ยน src ให้เป็นรูปการ์ตูนของคุณ -->
+        <img src="/image/108e3c23-30cb-4d1c-a8ae-882d9d227479.png" alt="Camera mascot" class="mascot">
+      </div>
+    </section>
 
-  <div class="login-container">
-    <img src="image/7b12d287221c0adf5b4efcdf326c178f.jpg" alt="User Icon" class="avatar">
-    <h1>ล็อกอิน</h1>
-    <form id="loginForm">
-      <div class="input-group">
-        <span class="icon">👤</span>
-        <input type="text" id="username" placeholder="ชื่อผู้ใช้งาน" required>
-      </div>
-      <div class="input-group">
-        <span class="icon">🔒</span>
-        <input type="password" id="pwd" placeholder="รหัสผ่าน" required>
-      </div>
-      <button type="submit" class="btn-login">ล็อกอิน</button>
-    </form>
-  </div>
-  <!-- ✅ Popup -->
+    <!-- ขวา: ฟอร์มล็อกอิน -->
+    <section class="right">
+      <h1 class="title">ล็อกอิน</h1>
+
+      <form id="loginForm" class="form">
+        <label class="field">
+          <span class="circle-icon">
+            <!-- ไอคอนผู้ใช้ -->
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.33 0-8 2.17-8 4.5V21h16v-2.5C20 16.17 16.33 14 12 14Z"/>
+            </svg>
+          </span>
+          <input id="username" type="text" placeholder="ชื่อผู้ใช้งาน" required>
+        </label>
+
+        <label class="field">
+          <span class="circle-icon">
+            <!-- ไอคอนกุญแจ -->
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 17a5 5 0 1 1 4.58-7.07L22 3l-1.5-1.5L18 4 16 2l-2 2-2-2-5 5a5 5 0 0 1 5 8Z"/>
+            </svg>
+          </span>
+          <input id="pwd" type="password" placeholder="รหัสผ่าน" required>
+        </label>
+
+        <button type="submit" class="btn">ล็อกอิน</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- Popup แจ้งเตือน (คงโครงเดิมให้ JS ใช้งาน) -->
   <div id="popup" class="popup">
     <div id="popup-content" class="popup-content">
       <p id="popup-message"></p>
@@ -36,8 +57,5 @@
   </div>
 
   <script src="index.js"></script>
-
-
 </body>
-
 </html>

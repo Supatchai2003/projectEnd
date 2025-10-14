@@ -1,74 +1,129 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>แก้ไขบัญชีแอดมิน</title>
-  <link rel="stylesheet" href="M_editadmin.css">
+  <link rel="stylesheet" href="M_editadmin.css" />
 </head>
+
 <body>
+  <div class="page-wrap">
+    <!-- ซ้าย: มาสคอต -->
+    <section class="left-panel">
+      <div class="mascot-card">
+        <!-- แก้ path รูปตามโปรเจ็กต์ -->
+        <img src="../../image/fb29d362-12e4-454b-99c9-b4373181a90c.png" alt="Mascot" />
+      </div>
+    </section>
 
-  <h1 class="title">จัดการบัญชีแอดมิน</h1>
+    <!-- ขวา: ฟอร์มแก้ไข -->
+    <section class="right-panel">
+      <h1 class="page-title">แก้ไขบัญชีแอดมิน</h1>
 
-  <div class="form-box">
-    <button class="delete-btn" onclick="deleteAdmin()">ลบบัญชี</button>
-    <h2>แก้ไขบัญชีแอดมิน</h2>
+      <div class="form-card">
+        <label>ชื่อ-นามสกุล</label>
+        <input id="name" type="text" placeholder="ชื่อ-นามสกุล" />
 
-    <label for="name">ชื่อของแอดมิน</label>
-    <input type="text" id="name" placeholder="ชื่อ-นามสกุล">
+        <label>ชื่อผู้ใช้งาน</label>
+        <input id="username" type="text" disabled />
 
-    <label for="username">ชื่อผู้ใช้งาน</label>
-    <input type="text" id="username" disabled>
+        <label>รหัสผ่าน (ใส่เมื่อจะเปลี่ยน, ≥ 8 ตัว)</label>
+        <input id="password" type="password" placeholder="ปล่อยว่างถ้าไม่เปลี่ยน" />
 
-    <label for="password">รหัสผ่าน</label>
-    <div class="password-wrapper">
-      <input type="password" id="password" placeholder="รหัสผ่าน">
+        <div class="grid-2">
+          <div>
+            <label>เพศ</label>
+            <select id="gender">
+              <option value="">-- เลือกเพศ --</option>
+              <option value="ชาย">ชาย</option>
+              <option value="หญิง">หญิง</option>
+              <option value="อื่นๆ">อื่นๆ</option>
+            </select>
+          </div>
+          <div>
+            <label>เบอร์โทรศัพท์</label>
+            <input id="phone" type="tel" placeholder="เช่น 062-5437777" />
+          </div>
+        </div>
+
+        <label>อีเมล</label>
+        <input id="gmail" type="email" placeholder="example@email.com" />
+
+        <div class="grid-2">
+          <div>
+            <label>จังหวัด</label>
+            <input id="province" type="text" />
+          </div>
+          <div>
+            <label>อำเภอ</label>
+            <input id="district" type="text" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label>ตำบล</label>
+            <input id="sub_district" type="text" />
+          </div>
+          <div>
+            <label>รหัสไปรษณีย์</label>
+            <input id="postal_code" type="text" inputmode="numeric" />
+          </div>
+        </div>
+
+        <p class="note">* เซิร์ฟเวอร์จะทำการ hash รหัสผ่านด้วย bcrypt และอัปเดตเฉพาะค่าที่แก้ไข</p>
+
+        <div class="btn-row">
+          <button class="btn danger" onclick="deleteAdmin()">ลบบัญชี</button>
+          <div class="spacer"></div>
+          <button class="btn ghost" onclick="cancel()">ยกเลิก</button>
+          <button class="btn primary" onclick="updateAdmin()">ยืนยัน</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- popups -->
+  <div id="popup-noauth" class="popup">
+    <div class="popup-content popup-error">
+      <p class="popup-message">คุณไม่มีสิทธิ์เข้าหน้านี้</p><button class="popup-ok">ตกลง</button>
     </div>
-
-    <div class="button-row">
-      <button class="cancel-btn" onclick="cancel()">ยกเลิก</button>
-      <button class="save-btn" onclick="updateAdmin()">ยืนยัน</button>
+  </div>
+  <div id="popup-loadfail" class="popup">
+    <div class="popup-content popup-error">
+      <p class="popup-message">โหลดข้อมูลไม่สำเร็จ</p><button class="popup-ok">ตกลง</button>
+    </div>
+  </div>
+  <div id="popup-save" class="popup">
+    <div class="popup-content popup-success">
+      <p class="popup-message">บันทึกเรียบร้อย</p><button class="popup-ok">ตกลง</button>
+    </div>
+  </div>
+  <div id="popup-delete" class="popup">
+    <div class="popup-content popup-success">
+      <p class="popup-message">ลบผู้ใช้แล้ว</p><button class="popup-ok">ตกลง</button>
+    </div>
+  </div>
+  <div id="popup-error" class="popup">
+    <div class="popup-content popup-error">
+      <p class="popup-message">เกิดข้อผิดพลาด</p><button class="popup-ok">ตกลง</button>
     </div>
   </div>
 
-  <!-- popup: ไม่มีสิทธิ์ -->
-<div id="popup-noauth" class="popup">
-  <div class="popup-content popup-error">
-    <p class="popup-message">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</p>
-    <button class="popup-ok">ตกลง</button>
+  <!-- popup ยืนยันการลบ -->
+  <div id="popup-confirm-delete" class="popup">
+    <div class="popup-content popup-warning">
+      <p class="popup-message">คุณต้องการลบบัญชีนี้จริงหรือไม่?</p>
+      <div class="popup-btn-row">
+        <button id="btn-confirm-delete" class="popup-ok danger">ตกลง</button>
+        <button id="btn-cancel-delete" class="popup-ok ghost">ยกเลิก</button>
+      </div>
+    </div>
   </div>
-</div>
 
-<!-- popup: โหลดไม่สำเร็จ -->
-<div id="popup-loadfail" class="popup">
-  <div class="popup-content popup-error">
-    <p class="popup-message">ไม่สามารถโหลดข้อมูลได้</p>
-    <button class="popup-ok">ตกลง</button>
-  </div>
-</div>
-
-<!-- popup: บันทึกสำเร็จ -->
-<div id="popup-save" class="popup">
-  <div class="popup-content popup-success">
-    <p class="popup-message">บันทึกข้อมูลเรียบร้อยแล้ว</p>
-    <button class="popup-ok">ตกลง</button>
-  </div>
-</div>
-
-<!-- popup: ลบสำเร็จ -->
-<div id="popup-delete" class="popup">
-  <div class="popup-content popup-success">
-    <p class="popup-message">ลบผู้ใช้เรียบร้อยแล้ว</p>
-    <button class="popup-ok">ตกลง</button>
-  </div>
-</div>
-
-<!-- popup: ข้อผิดพลาดทั่วไป -->
-<div id="popup-error" class="popup">
-  <div class="popup-content popup-error">
-    <p class="popup-message">เกิดข้อผิดพลาด</p>
-    <button class="popup-ok">ตกลง</button>
-  </div>
-</div>
   <script src="M_editadmin.js"></script>
 </body>
+
 </html>

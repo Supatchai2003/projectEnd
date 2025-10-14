@@ -1,7 +1,7 @@
 // ===== Base URL ของ backend =====
 const API_BASE = "http://localhost:3000";
 
-// ===== Popup Helper =====
+// ===== Popup Helper (เหมือนเดิม) =====
 function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {
   const popup = document.getElementById(id);
   if (!popup) return;
@@ -28,7 +28,6 @@ function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {
     setTimeout(() => closePopup(id, onClose), autoCloseMs);
   }
 }
-
 function closePopup(id, onClose) {
   const popup = document.getElementById(id);
   if (!popup) return;
@@ -39,18 +38,9 @@ function closePopup(id, onClose) {
 // ===== UI/State =====
 let selectedDeviceId = null;
 
-function toggleMenu() {
-  const menu = document.getElementById("menu");
-  menu.style.display = menu.style.display === "flex" ? "none" : "flex";
-}
-
 // ===== Popup เพิ่มอุปกรณ์ =====
-function showPopup() {
-  document.getElementById("popup").style.display = "flex";
-}
-function hidePopup() {
-  document.getElementById("popup").style.display = "none";
-}
+function showPopup() { document.getElementById("popup").style.display = "flex"; }
+function hidePopup() { document.getElementById("popup").style.display = "none"; }
 
 async function addDevice() {
   const piid = document.getElementById("piid").value.trim();
@@ -58,23 +48,18 @@ async function addDevice() {
     openPopup("popup-error", { message: "กรุณากรอก ID ของอุปกรณ์", type: "error" });
     return;
   }
-
   try {
     const res = await fetch(`${API_BASE}/devices/add`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ piid })
     });
     const json = await res.json();
-
     if (!res.ok || !json.success) {
       openPopup("popup-error", { message: json.message || "เพิ่มอุปกรณ์ไม่สำเร็จ", type: "error" });
       return;
     }
-
     openPopup("popup-success", {
-      message: "เพิ่มอุปกรณ์สำเร็จ",
-      type: "success",
+      message: "เพิ่มอุปกรณ์สำเร็จ", type: "success",
       onClose: () => { hidePopup(); loadDevices(); }
     });
   } catch (e) {
@@ -85,17 +70,14 @@ async function addDevice() {
 
 // ===== Popup แก้ไข =====
 function showEditPopup(data) {
-  selectedDeviceId = data.docId;            // ✅ ใช้ docId สำหรับยิง PUT/DELETE
+  selectedDeviceId = data.docId;  // ใช้ document id ในการ PUT/DELETE
   document.getElementById("v-ip").innerText = data.ip || "-";
-  document.getElementById("v-serial").value = data.id || "";   // ✅ ช่องนี้แก้ "ฟิลด์ id"
+  document.getElementById("v-serial").value = data.id || "";
   document.getElementById("v-status").innerText = data.status || "ออฟไลน์";
   document.getElementById("v-date").innerText = data.createdAt || "ไม่ระบุ";
   document.getElementById("edit-popup").style.display = "flex";
 }
-
-function hideEditPopup() {
-  document.getElementById("edit-popup").style.display = "none";
-}
+function hideEditPopup() { document.getElementById("edit-popup").style.display = "none"; }
 
 async function confirmEdit() {
   if (!selectedDeviceId) {
@@ -103,20 +85,17 @@ async function confirmEdit() {
     return;
   }
   const newIdValue = document.getElementById("v-serial").value.trim();
-
   try {
     const res = await fetch(`${API_BASE}/devices/${encodeURIComponent(selectedDeviceId)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: newIdValue || null })  // ✅ แก้ฟิลด์ id
+      body: JSON.stringify({ id: newIdValue || null })
     });
-
     const json = await res.json();
     if (!res.ok || !json.success) {
       openPopup("popup-error", { message: json.message || "บันทึกไม่สำเร็จ", type: "error" });
       return;
     }
-
     openPopup("popup-success", {
       message: "บันทึกการแก้ไขเรียบร้อย",
       type: "success",
@@ -134,23 +113,17 @@ async function deleteDevice() {
     openPopup("popup-error", { message: "ไม่พบอุปกรณ์ที่ต้องการลบ", type: "error" });
     return;
   }
-
   openPopup("popup-confirm", {
     message: "คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์นี้?",
-    type: "error",
-    autoCloseMs: null,
+    type: "error", autoCloseMs: null,
     onClose: async () => {
       try {
-        const res = await fetch(`${API_BASE}/devices/${encodeURIComponent(selectedDeviceId)}`, {
-          method: "DELETE"
-        });
+        const res = await fetch(`${API_BASE}/devices/${encodeURIComponent(selectedDeviceId)}`, { method: "DELETE" });
         const json = await res.json();
-
         if (!res.ok || !json.success) {
           openPopup("popup-error", { message: json.message || "ลบไม่สำเร็จ", type: "error" });
           return;
         }
-
         openPopup("popup-success", {
           message: "ลบอุปกรณ์เรียบร้อยแล้ว",
           type: "success",
@@ -170,27 +143,24 @@ function getQueryParam(name) {
   return url.searchParams.get(name);
 }
 
-// ===== โหลดอุปกรณ์ =====
+// ===== โหลดอุปกรณ์ (เรนเดอร์ให้เหมือนภาพ) =====
 async function loadDevices() {
   const container = document.getElementById("device-list");
   container.innerHTML = "";
 
-  const wantId = getQueryParam("id"); // ตรวจ id จาก URL
+  const wantId = getQueryParam("id"); // รองรับการเปิดด้วย id เดียว
 
   try {
     let json;
     if (wantId) {
-      // ดึงเฉพาะอุปกรณ์ id เดียว
       const res = await fetch(`${API_BASE}/devices/${encodeURIComponent(wantId)}`);
       json = await res.json();
-
       if (!res.ok || !json.success || !json.data) {
         openPopup("popup-error", { message: json.message || "ไม่พบอุปกรณ์ตาม id", type: "error" });
         return;
       }
       json = { success: true, data: [json.data] };
     } else {
-      // ดึงทั้งหมด
       const res = await fetch(`${API_BASE}/devices`);
       json = await res.json();
       if (!res.ok || !json.success) {
@@ -203,25 +173,37 @@ async function loadDevices() {
     (json.data || []).forEach((item) => {
       const used = Number(item.used) || 0;
       const total = Number(item.total) || 1;
-      const usedPercent = Math.min(100, Math.round((used / total) * 100));
+      const usedPercent = Math.max(0, Math.min(100, Math.round((used / total) * 100)));
+      const displayId = item.id ?? item.docId;
+      const online = String(item.status || "").toLowerCase() === "online";
 
-      const div = document.createElement("div");
-      div.className = "device-box";
-      const displayId = item.id ?? item.docId; // ✅ แสดงฟิลด์ id ก่อน ถ้าไม่มีค่อย fallback เป็น docId
-      div.innerHTML = `
-          <h3>${index++}. Raspberry Pi ID : ${displayId}
-            <button class="edit-btn"
-                onclick='showEditPopup(${JSON.stringify({ ...item })})'>✏️</button>
-          </h3>
-        <div class="bar-container">
-          <div class="bar-used" style="width: ${usedPercent}%"></div>
+      const wrap = document.createElement("div");
+      wrap.className = "device-item";
+      wrap.innerHTML = `
+        <div class="device-header">
+          <div class="device-name">${index++}. Raspberry pi Serial : ${displayId}</div>
+          <button class="edit-btn" title="แก้ไข" onclick='showEditPopup(${JSON.stringify({ ...item })})'>✏️</button>
         </div>
-        <div class="bar-labels">
-          <span>พื้นที่ทั้งหมด</span><span style="color:red;">🔴 ใช้ไปแล้ว</span>
+
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div class="progress-used" style="width:${usedPercent}%"></div>
+          </div>
         </div>
-        <div class="status">สถานะ : ${item.status || 'ออฟไลน์'}</div>
+
+        <div class="progress-legends">
+          <div class="legend-left">
+            <span><span class="dot dot-gray"></span>พื้นที่จัดเก็บ</span>
+            <span><span class="dot dot-red"></span>ใช้ไปแล้ว</span>
+          </div>
+          <div>พื้นที่ทั้งหมด</div>
+        </div>
+
+        <div class="device-footer">
+          <span class="${online ? "state-online" : "state-offline"}">สถานะ : ${item.status || "ออฟไลน์"}</span>
+        </div>
       `;
-      container.appendChild(div);
+      container.appendChild(wrap);
     });
   } catch (e) {
     console.error(e);
@@ -232,6 +214,7 @@ async function loadDevices() {
 // ===== หน้าอื่น ๆ =====
 function goHome() {
   const role = localStorage.getItem("role");
+  document.getElementById("role-label").innerText = role ? role : "User";
   if (role === "superadmin") {
     window.location.href = "../../manager/homepage/M_homepage.html";
   } else {
@@ -239,24 +222,33 @@ function goHome() {
   }
 }
 
-function logout() {
-  localStorage.clear();
-  openPopup("popup-success", {
-    message: "ออกจากระบบเรียบร้อยแล้ว",
-    type: "success",
-    onClose: () => window.location.href = "../../index.html"
-  });
-}
-
 // ===== Popup ประวัติ =====
 function showHistoryPopup() { document.getElementById("history-popup").style.display = "flex"; }
 function hideHistoryPopup() { document.getElementById("history-popup").style.display = "none"; }
 function goToHistory(type) {
-  if (type === 'summary') window.location.href = "../../device/history/history_summary.html";
-  if (type === 'daily') window.location.href = "../../device/history/history_time.html";
+  if (type === "summary") window.location.href = "../../device/history/history_summary.html";
+  if (type === "daily") window.location.href = "../../device/history/history_time.html";
+}
+function logout() {
+  localStorage.clear();
+
+  const popup = document.getElementById("popup-logout");
+  const msg = document.getElementById("popup-message");
+  const okBtn = document.getElementById("popup-ok");
+
+  msg.textContent = "ออกจากระบบเรียบร้อยแล้ว";
+  popup.style.display = "flex";
+
+  okBtn.onclick = function () {
+    popup.style.display = "none";
+    window.location.href = "../../index.html";
+  };
 }
 
-// ===== เริ่มทำงานเมื่อโหลดหน้าเสร็จ =====
+// ===== เริ่มทำงาน =====
 document.addEventListener("DOMContentLoaded", () => {
+  // ใส่ role บนมุมซ้ายให้ด้วย
+  const role = localStorage.getItem("role");
+  document.getElementById("role-label").innerText = role ? role : "User";
   loadDevices();
 });

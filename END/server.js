@@ -50,7 +50,7 @@ app.post("/login", async (req, res) => {
     const data = doc.data();
     const ok = await bcrypt.compare(String(password || ""), data.password);
     if (!ok) return res.status(401).json({ success: false, message: "รหัสผ่านไม่ถูกต้อง" });
-
+    
     res.json({ success: true, role: data.role, id: doc.id });
   } catch (e) {
     console.error("Login error:", e);
@@ -113,56 +113,73 @@ app.post("/add-user", async (req, res) => {
   }
 });
 
-// Get admin by id
-app.get("/get-user/:id", async (req, res) => {
-  try {
-    const doc = await db.collection("admin").doc(req.params.id).get();
-    if (!doc.exists) return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้" });
-    const data = doc.data();
-    const { password, ...safe } = data;
-    res.json({ success: true, data: safe });
-  } catch (e) {
-    console.error("Get user error:", e);
-    res.status(500).json({ success: false, message: "ไม่สามารถโหลดข้อมูลผู้ใช้ได้" });
-  }
-});
-
-// Update admin
+// ตัวอย่าง update-user
 app.put("/update-user/:id", async (req, res) => {
   try {
-    const body = req.body || {};
+    const { id } = req.params;
+    const {
+      name, gender, gmail, phone, password,
+      address = {}    // { province, district, sub_district, postal_code }
+    } = req.body || {};
+
     const updates = {};
+    if (name !== undefined)   updates.name = String(name).trim();
+    if (gender !== undefined) updates.gender = String(gender).trim();
+    if (gmail !== undefined)  updates.gmail = String(gmail).trim();
+    if (phone !== undefined)  updates.phone = String(phone).trim();
 
-    if (body.name !== undefined) updates.name = String(body.name).trim();
-    if (body.gender !== undefined) updates.gender = String(body.gender).trim();
-    if (body.gmail !== undefined) updates.gmail = String(body.gmail).trim();
-    if (body.phone !== undefined) updates.phone = String(body.phone).trim();
+    // address (อัปเดตเป็นอ็อบเจ็กต์ย่อย)
+    const addr = {};
+    if (address.province     !== undefined) addr.province     = String(address.province).trim();
+    if (address.district     !== undefined) addr.district     = String(address.district).trim();
+    if (address.sub_district !== undefined) addr.sub_district = String(address.sub_district).trim();
+    if (address.postal_code  !== undefined) addr.postal_code  = String(address.postal_code).trim();
+    if (Object.keys(addr).length) updates.address = addr;
 
-    if (body.address) {
-      updates.address = {
-        province: body.address.province ? String(body.address.province).trim() : "",
-        district: body.address.district ? String(body.address.district).trim() : "",
-        sub_district: body.address.sub_district ? String(body.address.sub_district).trim() : "",
-        postal_code: body.address.postal_code ? String(body.address.postal_code).trim() : "",
-      };
+    // ถ้ามีรหัสผ่านใหม่ → hash
+    if (password) {
+      if (String(password).length < 8) {
+        return res.status(400).json({ success:false, message:"รหัสผ่านต้อง ≥ 8 ตัวอักษร" });
+      }
+      const bcrypt = require("bcryptjs");
+      const hash = await bcrypt.hash(String(password), 10);
+      updates.password = hash;
     }
 
-    if (body.password && String(body.password).length >= 8) {
-      updates.password = await bcrypt.hash(String(body.password), 10);
+    if (!Object.keys(updates).length) {
+      return res.json({ success:true, message:"ไม่มีข้อมูลที่ต้องอัปเดต" });
     }
 
-    if (body.role) console.warn("Client tried to modify role via update-user:", body.role);
-
-    if (Object.keys(updates).length === 0)
-      return res.status(400).json({ success: false, message: "ไม่มีข้อมูลสำหรับอัปเดต" });
-
-    await db.collection("admin").doc(req.params.id).update(updates);
-    res.json({ success: true, message: "อัปเดตข้อมูลเรียบร้อยแล้ว" });
+    await db.collection("admin").doc(id).update(updates);
+    res.json({ success:true, message:"updated" });
   } catch (e) {
-    console.error("Update user error:", e);
-    res.status(500).json({ success: false, message: "ไม่สามารถอัปเดตผู้ใช้ได้" });
+    console.error("update-user error:", e);
+    res.status(500).json({ success:false, message:"server error" });
   }
 });
+
+// ถ้ายังไม่มี get-user
+app.get("/get-user/:id", async (req,res)=>{
+  try{
+    const doc = await db.collection("admin").doc(req.params.id).get();
+    if(!doc.exists) return res.status(404).json({success:false,message:"not found"});
+    const d = doc.data();
+    res.json({ success:true, data:{
+      id: doc.id,
+      username: d.username || "",
+      name: d.name || "",
+      role: d.role || "",
+      gender: d.gender || "",
+      gmail: d.gmail || "",
+      phone: d.phone || "",
+      address: d.address || {}
+    }});
+  }catch(e){
+    console.error("get-user error:",e);
+    res.status(500).json({success:false,message:"server error"});
+  }
+});
+
 
 // Delete admin
 app.delete("/delete-user/:id", async (req, res) => {
@@ -345,6 +362,40 @@ app.delete("/devices/:id", async (req, res) => {
   } catch (e) {
     console.error("Delete device error:", e);
     res.status(500).json({ success: false, message: "ไม่สามารถลบอุปกรณ์ได้" });
+  }
+});
+// ===================== Admin Management APIs =====================
+// helper แปลง doc
+function mapAdminDoc(doc){
+  const d = doc.data();
+  return { id: doc.id, username: d.username || "", role: d.role || "" };
+}
+
+// ---- รายชื่อแอดมินทั้งหมด (กรอง role=admin) ----
+app.get("/admins", async (req, res) => {
+  try {
+    const { role } = req.query; // optional ?role=admin
+    let ref = db.collection("admin");
+    if (role) ref = ref.where("role", "==", role);
+
+    const snap = await ref.get();
+    const items = snap.docs.map(mapAdminDoc);
+    res.json({ success: true, data: items });
+  } catch (e) {
+    console.error("GET /admins error:", e);
+    res.status(500).json({ success: false, message: "server error" });
+  }
+});
+
+// ---- อ่านแอดมินทีละคน (ใช้ตอนหน้าแก้ไข) ----
+app.get("/admins/:id", async (req, res) => {
+  try {
+    const doc = await db.collection("admin").doc(req.params.id).get();
+    if (!doc.exists) return res.status(404).json({ success:false, message:"not found" });
+    res.json({ success:true, data: mapAdminDoc(doc) });
+  } catch (e) {
+    console.error("GET /admins/:id error:", e);
+    res.status(500).json({ success:false, message:"server error" });
   }
 });
 

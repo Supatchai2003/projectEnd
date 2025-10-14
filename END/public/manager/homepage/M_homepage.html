@@ -1,40 +1,47 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>เมนูแผงควบคุม</title>
   <link rel="stylesheet" href="M_homepage.css">
 </head>
-
 <body>
+  <div class="container">
+    <!-- หัวข้อ -->
+    <header>
+      <h1>การจัดการบัญชีแอดมินและอุปกรณ์</h1>
+      <button class="logout-btn" onclick="logout()">ออกจากระบบ</button>
+    </header>
 
-  <h1 class="title">เมนูแผงควบคุม</h1>
+    <!-- กล่องหลัก -->
+    <main class="main-box">
+      <!-- ซ้าย: ข้อมูลผู้ใช้ + มาสคอต -->
+      <section class="left-panel">
+        <div class="mascot-box">
+          <p>สิทธิ์ผู้ใช้งาน : <span id="role">-</span></p>
+          <img src="../../image/108e3c23-30cb-4d1c-a8ae-882d9d227479.png" alt="camera mascot">
+          <p class="choose-text">กรุณาเลือกรายการ</p>
+        </div>
+      </section>
 
-  <div class="menu-box">
-    <div class="hamburger-icon" onclick="toggleMenu()">☰</div>
-    <h2>รายการ</h2>
-    <div class="button-group">
-      <button onclick="goToAdmins()">จัดการบัญชีแอดมิน</button>
-      <button onclick="goToDevices()">จัดการอุปกรณ์</button>
-    </div>
+      <!-- ขวา: รายการปุ่ม -->
+      <section class="right-panel">
+        <h2>รายการ</h2>
+        <button onclick="goToAdmins()">จัดการบัญชีแอดมิน</button>
+        <button onclick="goToDevices()">จัดการอุปกรณ์</button>
+      </section>
+    </main>
   </div>
 
-  <div class="hamburger-menu" id="menu">
-    <button onclick="goHome()">🏠 หน้าแรก</button>
-    <button onclick="logout()">🚪 ออกจากระบบ</button>
-  </div>
-
+  <!-- Popup -->
   <div id="popup" class="popup">
-    <div id="popup-content" class="popup-content">
-      <p id="popup-message">ออกจากระบบแล้ว</p>
+    <div class="popup-content">
+      <p id="popup-message">ออกจากระบบเรียบร้อยแล้ว</p>
       <button id="popup-ok">ตกลง</button>
     </div>
   </div>
-  
 
   <script src="M_homepage.js"></script>
 </body>
-
 </html>
