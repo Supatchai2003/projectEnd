@@ -1,4 +1,4 @@
-// --------  --------
+// -------- server.js --------
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
@@ -6,16 +6,20 @@ const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
 const bcrypt = require("bcrypt");
 const serviceAccount = require("./serviceAccountKey.json");
-// ============================================
 
+// ===================== Firebase =====================
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
+// ===================== App =====================
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ---- helpers ----
+// Health check
+app.get("/health", (_req, res) => res.json({ ok: true }));
+
+// ===================== Helpers =====================
 function requiredFields(obj, fields) {
   const missed = [];
   for (const f of fields) {
@@ -24,7 +28,6 @@ function requiredFields(obj, fields) {
   }
   return missed;
 }
-// ฟังก์ชันสร้างที่อยู่
 function buildAddress(body) {
   const a = body.address || {};
   return {
@@ -35,16 +38,17 @@ function buildAddress(body) {
   };
 }
 
-// ---- login ----
+// ===================== Admin APIs =====================
+// Login
 app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password } = req.body || {};
   try {
-    const snap = await db.collection("admin").where("username", "==", username).get();
+    const snap = await db.collection("admin").where("username", "==", username).limit(1).get();
     if (snap.empty) return res.status(401).json({ success: false, message: "ชื่อผู้ใช้ไม่ถูกต้อง" });
 
     const doc = snap.docs[0];
     const data = doc.data();
-    const ok = await bcrypt.compare(password, data.password);
+    const ok = await bcrypt.compare(String(password || ""), data.password);
     if (!ok) return res.status(401).json({ success: false, message: "รหัสผ่านไม่ถูกต้อง" });
 
     res.json({ success: true, role: data.role, id: doc.id });
@@ -54,11 +58,10 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// ---- create admin ----
+// Create admin
 app.post("/add-user", async (req, res) => {
   try {
-    const body = req.body;
-
+    const body = req.body || {};
     const must = [
       "username",
       "password",
@@ -76,19 +79,17 @@ app.post("/add-user", async (req, res) => {
       return res.status(400).json({ success: false, message: "กรอกข้อมูลไม่ครบ", missed });
     }
 
-    // block role from client
     if (body.role && body.role !== "admin") {
       console.warn("Client tried to set role:", body.role);
     }
 
-    // duplicate username
-    const dupe = await db.collection("admin").where("username", "==", body.username).get();
+    const dupe = await db.collection("admin").where("username", "==", String(body.username).trim()).limit(1).get();
     if (!dupe.empty) return res.status(409).json({ success: false, message: "มีชื่อผู้ใช้นี้อยู่แล้ว" });
 
     if (String(body.password).length < 8)
       return res.status(400).json({ success: false, message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร" });
 
-    const passwordHash = await bcrypt.hash(body.password, 10);
+    const passwordHash = await bcrypt.hash(String(body.password), 10);
     const addr = buildAddress(body);
 
     const docData = {
@@ -99,7 +100,7 @@ app.post("/add-user", async (req, res) => {
       gmail: String(body.gmail).trim(),
       phone: String(body.phone).trim(),
       address: addr,
-      role: "admin", // server sets role
+      role: "admin",
       hireday: admin.firestore.Timestamp.now(),
     };
 
@@ -112,7 +113,7 @@ app.post("/add-user", async (req, res) => {
   }
 });
 
-// ---- get admin ----
+// Get admin by id
 app.get("/get-user/:id", async (req, res) => {
   try {
     const doc = await db.collection("admin").doc(req.params.id).get();
@@ -126,10 +127,10 @@ app.get("/get-user/:id", async (req, res) => {
   }
 });
 
-// ---- update admin ----
+// Update admin
 app.put("/update-user/:id", async (req, res) => {
   try {
-    const body = req.body;
+    const body = req.body || {};
     const updates = {};
 
     if (body.name !== undefined) updates.name = String(body.name).trim();
@@ -163,7 +164,7 @@ app.put("/update-user/:id", async (req, res) => {
   }
 });
 
-// ---- delete admin ----
+// Delete admin
 app.delete("/delete-user/:id", async (req, res) => {
   try {
     await db.collection("admin").doc(req.params.id).delete();
@@ -174,49 +175,46 @@ app.delete("/delete-user/:id", async (req, res) => {
   }
 });
 
-// ========= Device APIs =========
-// คอลเลกชันอุปกรณ์ใน Firestore: "Raspberry_pi"
+// ===================== Device APIs (collection: Raspberry_pi) =====================
+
+// Normalize -> map Firestore doc to response object (use 'id' field; no 'serial')
+function mapDeviceDoc(d) {
+  const data = d.data();
+  const allowed = ["To be Added", "offline", "online"];
+  const status = allowed.includes(data.status) ? data.status : "offline";
+
+  let createdAtStr = null;
+  if (data.createdAt?.toDate) {
+    createdAtStr = data.createdAt.toDate().toLocaleString("th-TH", {
+      timeZone: "Asia/Bangkok",
+      dateStyle: "short",
+      timeStyle: "medium",
+    });
+  }
+
+  return {
+    // ✅ แยกให้ชัด: docId = document id, id = ฟิลด์ภายในเอกสาร
+    docId: d.id,
+    id: (data.id !== undefined && data.id !== null && String(data.id).trim() !== "")
+        ? String(data.id).trim()
+        : d.id,
+    ip: data.ip || null,
+    status,
+    used: data.used ?? null,
+    total: data.total ?? null,
+    createdAt: createdAtStr,
+  };
+}
+
 
 /**
  * GET /devices
- * ดึงรายการอุปกรณ์ทั้งหมด
+ * ดึงรายการอุปกรณ์ "ที่ถูกเพิ่มแล้ว" (added == true)
  */
-app.get("/devices", async (req, res) => {
+app.get("/devices", async (_req, res) => {
   try {
-    const ALLOWED = ["To be Added", "offline", "online"];
-
-    // ดึงเฉพาะที่ผ่านการ Add
-    const snap = await db.collection("Raspberry_pi")
-      .where("added", "==", true)
-      .get();
-
-    const items = snap.docs.map(d => {
-      const data = d.data();
-
-      // normalize status
-      const status = ALLOWED.includes(data.status) ? data.status : "offline";
-
-      // format createdAt เป็นข้อความ (โซนเวลาไทย)
-      let createdAtStr = null;
-      if (data.createdAt?.toDate) {
-        createdAtStr = data.createdAt.toDate().toLocaleString("th-TH", {
-          timeZone: "Asia/Bangkok",
-          dateStyle: "short",
-          timeStyle: "medium"
-        });
-      }
-
-      return {
-        id: d.id,
-        serial: data.serial || d.id,
-        ip: data.ip || null,
-        status,
-        used: data.used ?? null,
-        total: data.total ?? null,
-        createdAt: createdAtStr
-      };
-    });
-
+    const snap = await db.collection("Raspberry_pi").where("added", "==", true).get();
+    const items = snap.docs.map(mapDeviceDoc);
     res.json({ success: true, data: items });
   } catch (e) {
     console.error("List devices error:", e);
@@ -224,46 +222,103 @@ app.get("/devices", async (req, res) => {
   }
 });
 
-// POST /devices/add
+
+/**
+ * GET /devices/:id
+ * ดึงอุปกรณ์ "ตัวเดียว" ตามพารามิเตอร์ id
+ * ✅ แก้ให้ค้นจาก field 'id' ก่อน (เช่น id: "1")
+ * แล้วค่อย fallback ไปดู document id ถ้าไม่เจอ
+ */
+app.get("/devices/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    let doc = null;
+
+    // 🔹 (1) ค้นจาก field 'id' ก่อน
+    const q = await db.collection("Raspberry_pi").where("id", "==", id).limit(1).get();
+    if (!q.empty) {
+      doc = q.docs[0];
+    } else {
+      // 🔹 (2) ถ้าไม่เจอ field 'id' ตรง ลองใช้ document id แทน
+      const tryDoc = await db.collection("Raspberry_pi").doc(id).get();
+      if (tryDoc.exists) doc = tryDoc;
+    }
+
+    if (!doc) {
+      return res.status(404).json({ success: false, message: "ไม่พบอุปกรณ์ที่ระบุ" });
+    }
+
+    const item = mapDeviceDoc(doc);
+    res.json({ success: true, data: item });
+  } catch (e) {
+    console.error("Get device by id error:", e);
+    res.status(500).json({ success: false, message: "ไม่สามารถโหลดข้อมูลอุปกรณ์ได้" });
+  }
+});
+
+
+/**
+ * POST /devices/add
+ * เพิ่มสถานะ "ถูกเพิ่ม" ให้เอกสารที่มี field 'id' หรือ document id ตรงกับ piid
+ * - ไม่สร้าง doc ใหม่
+ * - ไม่บังคับใช้ field 'serial'
+ */
 app.post("/devices/add", async (req, res) => {
   try {
     const { piid } = req.body || {};
     if (!piid || String(piid).trim() === "") {
-      return res.status(400).json({ success: false, message: "กรุณาระบุ Serial ID (piid)" });
+      return res.status(400).json({ success: false, message: "กรุณาระบุ ID ของอุปกรณ์ (piid)" });
     }
 
-    const snap = await db.collection("Raspberry_pi").get();
-    const docHit = snap.docs.find(doc => (doc.data().id || "").trim() === String(piid).trim());
+    // หาเอกสารจาก field 'id' ก่อน
+    let hitDoc = null;
+    const snap = await db.collection("Raspberry_pi").where("id", "==", String(piid).trim()).limit(1).get();
+    if (!snap.empty) {
+      hitDoc = snap.docs[0];
+    } else {
+      // ถ้าไม่เจอ ลองใช้ document id
+      const tryDoc = await db.collection("Raspberry_pi").doc(String(piid).trim()).get();
+      if (tryDoc.exists) hitDoc = tryDoc;
+    }
 
-    if (!docHit) {
+    if (!hitDoc) {
       return res.status(404).json({ success: false, message: "ไม่พบอุปกรณ์นี้ในฐานข้อมูล" });
     }
 
-    const data = docHit.data();
-    await docHit.ref.update({
-      serial: docHit.id,
+    const data = hitDoc.data() || {};
+    await hitDoc.ref.update({
+      // เก็บ id ไว้ใน field 'id' ด้วย เพื่อให้ฝั่งแอปอ่านสะดวก
+      id: data.id || hitDoc.id,
       status: "To be Added",
       added: true,
-      createdAt: data.createdAt ? data.createdAt : admin.firestore.FieldValue.serverTimestamp()
+      createdAt: data.createdAt ? data.createdAt : admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    res.json({ success: true, message: "เพิ่มอุปกรณ์สำเร็จ", id: docHit.id });
+    res.json({ success: true, message: "เพิ่มอุปกรณ์สำเร็จ", id: hitDoc.id });
   } catch (e) {
     console.error("Add device error:", e);
     res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในการเพิ่มอุปกรณ์" });
   }
 });
 
+/**
+ * PUT /devices/:id
+ * อัปเดตฟิลด์ของอุปกรณ์ (ไม่เปลี่ยน document id)
+ * อนุญาต: id (field), status, used, total, ip
+ */
 app.put("/devices/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const body = req.body || {};
     const updates = {};
 
-    if (body.serial !== undefined) updates.serial = String(body.serial).trim() || null;
+    // ✅ อนุญาตอัปเดต "ฟิลด์ id" (ไม่ใช่ document id)
+    if (body.id !== undefined) updates.id = String(body.id).trim();
+
     if (body.status !== undefined) updates.status = String(body.status).trim();
-    if (body.used !== undefined) updates.used = Number(body.used);
-    if (body.total !== undefined) updates.total = Number(body.total);
+    if (body.used   !== undefined) updates.used   = Number(body.used);
+    if (body.total  !== undefined) updates.total  = Number(body.total);
+    if (body.ip     !== undefined) updates.ip     = String(body.ip).trim();
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ success: false, message: "ไม่มีข้อมูลสำหรับอัปเดต" });
@@ -277,9 +332,10 @@ app.put("/devices/:id", async (req, res) => {
   }
 });
 
+
 /**
  * DELETE /devices/:id
- * ลบอุปกรณ์ตาม doc id
+ * ลบอุปกรณ์ตาม document id
  */
 app.delete("/devices/:id", async (req, res) => {
   try {
@@ -292,8 +348,9 @@ app.delete("/devices/:id", async (req, res) => {
   }
 });
 
-
-// static files (ถ้ามี)
+// ===================== Static (ถ้าต้องการเสิร์ฟไฟล์หน้าเว็บ) =====================
 app.use(express.static(path.join(__dirname, "public")));
 
-app.listen(3000, () => console.log("Server running on http://localhost:3000"));
+// ===================== Start =====================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
