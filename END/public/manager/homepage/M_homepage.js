@@ -1,3 +1,4 @@
+// ===== M_homepage.js =====
 window.addEventListener("DOMContentLoaded", () => {
   const role = localStorage.getItem("role") || "-";
   document.getElementById("role").textContent = role;

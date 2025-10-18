@@ -1,8 +1,5 @@
 // ======= history_summary.js (ใช้ข้อมูลจาก server.js) =======
-
-// ถ้ามีการประกาศไว้ที่ไฟล์รวม ให้ใช้ตัวนั้นก่อน
-// เช่น window.API_BASE = "https://your-backend.onrender.com";
-const API_BASE = (window.API_BASE || "").replace(/\/+$/,""); // ตัด / ท้ายสุด
+const API_BASE = (window.API_BASE ?? "").replace(/\/+$/,"");
 
 // ----- DOM -----
 const monthSelect = document.getElementById('monthSelect');
@@ -15,12 +12,10 @@ const requiredAnimals = ["งู", "ตะขาบ", "หนู", "ตัวเ
 
 // แมพชื่อจากค่าที่ backend ส่งมา -> ชื่อไทยที่จะแสดง
 const typeMap = {
-  // ไทย
   "งู": "งู",
   "ตะขาบ": "ตะขาบ",
   "หนู": "หนู",
   "ตัวเงินตัวทอง": "ตัวเงินตัวทอง",
-  // อังกฤษ/คำพ้อง
   "snake": "งู",
   "centipede": "ตะขาบ",
   "mouse": "หนู",
@@ -89,18 +84,9 @@ async function loadSummaryFromServer() {
   const monthIdx  = new Date(`${monthName} 1, ${yearCE}`).getMonth(); // 0..11
   const monthForApi = monthIdx + 1; // API ต้องการ 1..12
 
-  // เตรียมตัวนับ
-  const counts = {
-    "งู": 0,
-    "ตะขาบ": 0,
-    "หนู": 0,
-    "ตัวเงินตัวทอง": 0
-  };
+  const counts = { "งู": 0, "ตะขาบ": 0, "หนู": 0, "ตัวเงินตัวทอง": 0 };
 
-  // ล้างตารางก่อน
-  tableBody.innerHTML = `
-    <tr><td colspan="2" style="text-align:center">กำลังโหลดข้อมูล...</td></tr>
-  `;
+  tableBody.innerHTML = `<tr><td colspan="2" style="text-align:center">กำลังโหลดข้อมูล...</td></tr>`;
 
   try {
     const url = `${API_BASE}/history/time?month=${monthForApi}&year=${yearCE}`;
@@ -108,22 +94,16 @@ async function loadSummaryFromServer() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
 
-    // รูปแบบที่ server.js ส่ง:
-    // { success: true, data: [ { deviceId, type, ts }, ... ] }
     const rows = Array.isArray(json?.data) ? json.data : [];
-
     rows.forEach(item => {
       const raw = String(item?.type || "").trim().toLowerCase();
       const mapped = typeMap[raw] ?? typeMap[raw.replaceAll("_", " ")] ?? null;
-      if (mapped && counts.hasOwnProperty(mapped)) {
-        counts[mapped] += 1;
-      }
+      if (mapped && counts.hasOwnProperty(mapped)) counts[mapped] += 1;
     });
 
   } catch (err) {
     console.error("โหลดจาก server ล้มเหลว:", err);
   } finally {
-    // เรนเดอร์ผลลัพธ์ (แม้โหลดล้มเหลวก็แสดง 0)
     tableBody.innerHTML = "";
     requiredAnimals.forEach(nameTH => {
       const tr = document.createElement("tr");
@@ -135,6 +115,5 @@ async function loadSummaryFromServer() {
 
 // ปุ่มย้อนกลับ
 function goBack() {
-  // ปรับ path ตามโปรเจกต์จริงของคุณ
   window.location.href = "../list_device/device_list.html";
 }

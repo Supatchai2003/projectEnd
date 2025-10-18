@@ -1,6 +1,5 @@
-// history_time.js — ดึงข้อมูลจาก server.js เท่านั้น (ไม่มี Firebase SDK ฝั่งหน้าเว็บ)
-const API_BASE = "http://localhost:3000"; // ถ้าไฟล์ html ถูกเสิร์ฟจากโดเมนเดียวกับ server.js ใช้ "" ได้
-// ถ้า backend อยู่คนละที่ เช่น http://localhost:3000 ให้ใส่ URL ตรงนี้
+// ===== history_time.js — ดึงข้อมูลจาก server.js =====
+const API_BASE = (window.API_BASE ?? "").replace(/\/+$/, "");
 
 const monthSelect = document.getElementById("monthSelect");
 const yearSelect  = document.getElementById("yearSelect");
@@ -42,12 +41,7 @@ backBtn.addEventListener("click", () => {
 
 // ===== Helpers =====
 function translateType(type) {
-  const dict = {
-    snake: "งู",
-    mouse: "หนู",
-    centipede: "ตะขาบ",
-    lizard: "ตัวเงินตัวทอง"
-  };
+  const dict = { snake: "งู", mouse: "หนู", centipede: "ตะขาบ", lizard: "ตัวเงินตัวทอง" };
   return dict[type] || type || "-";
 }
 

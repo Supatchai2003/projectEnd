@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:3000"; // URL backend ของคุณ
+// ===== M_admin_list.js =====
+const API_BASE = (window.API_BASE ?? "").replace(/\/+$/, "");
 
 async function loadAdmins() {
   const container = document.getElementById("admin-list");

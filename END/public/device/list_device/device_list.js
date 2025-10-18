@@ -1,5 +1,5 @@
 // ===== Base URL ของ backend =====
-const API_BASE = "http://localhost:3000";
+const API_BASE = (window.API_BASE ?? "").replace(/\/+$/, "");
 
 // ===== Popup Helper (เหมือนเดิม) =====
 function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {
@@ -35,7 +35,6 @@ function closePopup(id, onClose) {
   if (typeof onClose === "function") onClose();
 }
 function hideConfirmPopup() {
-  // ปิดเฉพาะ popup ยืนยันการลบ โดยไม่ไปเรียก onClose (ไม่ลบ)
   const p = document.getElementById("popup-confirm");
   if (p) p.style.display = "none";
 }
@@ -162,9 +161,9 @@ async function fetchUsedKb(docId) {
       const j = await res.json();
       if (j && j.success && typeof j.sum_kb === "number") return j.sum_kb;
     }
-  } catch (_) { }
+  } catch (_) {}
 
-  // 2) ถ้าไม่มี endpoint สรุป ให้ fallback มาดึงรายการแล้วบวกรวมหน้าเว็บ
+  // 2) ถ้าไม่มี endpoint สรุป ให้ fallback มาดึงรายการแล้วบวกรวมหน้าเว็บ (option สำรอง)
   try {
     const res = await fetch(`${API_BASE}/devices/${encodeURIComponent(docId)}/detections?fields=image_size_kb`);
     if (res.ok) {
@@ -172,15 +171,13 @@ async function fetchUsedKb(docId) {
       if (j && j.success && Array.isArray(j.data)) {
         let sum = 0;
         for (const d of j.data) {
-          const kb = Number(
-            d.image_size_kb ?? d.image_sizeKB ?? d.size_kb ?? 0
-          );
+          const kb = Number(d.image_size_kb ?? d.image_sizeKB ?? d.size_kb ?? 0);
           if (!Number.isNaN(kb)) sum += kb;
         }
         return sum;
       }
     }
-  } catch (_) { }
+  } catch (_) {}
 
   return 0;
 }
@@ -220,18 +217,13 @@ async function loadDevices() {
     let index = 1;
     devices.forEach((item, i) => {
       const usedKb = usagesKb[i] || 0;
-      // ===== คำนวณเปอร์เซ็นต์แบบละเอียด และให้มีขั้นต่ำ 1% =====
       const percentFloat = (usedKb / TOTAL_KB) * 100;
-      // ถ้ามีการใช้งาน > 0 แต่ < 1% ให้แสดงอย่างน้อย 1%
       const usedPercent = Math.min(
         100,
         percentFloat > 0 && percentFloat < 1 ? 1 : Number(percentFloat.toFixed(2))
       );
-
-      // แสดงค่าที่อ่านง่าย
       const usedGbStr = (usedKb / KB_PER_GB).toFixed(2);
       const totalGbStr = TOTAL_GB.toString();
-
 
       const displayId = item.id ?? item.docId;
       const online = String(item.status || "").toLowerCase() === "online";
@@ -270,7 +262,6 @@ async function loadDevices() {
   }
 }
 
-
 // ===== หน้าอื่น ๆ =====
 function goHome() {
   const role = localStorage.getItem("role");
@@ -289,6 +280,7 @@ function goToHistory(type) {
   if (type === "summary") window.location.href = "../../device/history/history_summary.html";
   if (type === "daily") window.location.href = "../../device/history/history_time.html";
 }
+
 function logout() {
   localStorage.clear();
 
@@ -310,8 +302,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const role = localStorage.getItem("role") || "User";
   document.getElementById("role-label").innerText = role;
 
-  // 🔹 ถ้าเป็น ADMIN หรือ SUPERADMIN → ซ่อนปุ่มย้อนกลับ
-  if (role.toLowerCase() === "admin") {
+  // 🔹 ถ้าเป็น ADMIN หรือ SUPERADMIN → ซ่อนปุ่มย้อนกลับ (ตัวอย่างเดิม: admin ซ่อน)
+  if (role && role.toLowerCase() === "admin") {
     const backBtn = document.querySelector(".back-btn");
     if (backBtn) backBtn.style.display = "none";
   }
@@ -319,3 +311,15 @@ document.addEventListener("DOMContentLoaded", () => {
   loadDevices();
 });
 
+// ===== export to window (ถ้าต้องเรียกจาก HTML) =====
+window.addDevice = addDevice;
+window.showPopup = showPopup;
+window.hidePopup = hidePopup;
+window.showEditPopup = showEditPopup;
+window.hideEditPopup = hideEditPopup;
+window.confirmEdit = confirmEdit;
+window.deleteDevice = deleteDevice;
+window.showHistoryPopup = showHistoryPopup;
+window.hideHistoryPopup = hideHistoryPopup;
+window.goToHistory = goToHistory;
+window.logout = logout;

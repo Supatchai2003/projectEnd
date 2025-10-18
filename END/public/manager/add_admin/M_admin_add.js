@@ -1,5 +1,5 @@
-// ===== API base URL =====
-const API_BASE = "http://localhost:3000";
+// ===== M_admin_add.js =====
+const API_BASE = (window.API_BASE ?? "").replace(/\/+$/, "");
 
 // ===== Popup Helper =====
 function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {
@@ -10,26 +10,21 @@ function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {
   const msgNode = popup.querySelector(".popup-message");
   const okBtn = popup.querySelector(".popup-ok");
 
-  // สี/สถานะ
   if (content) {
     content.classList.remove("popup-success", "popup-error");
     if (type === "success") content.classList.add("popup-success");
     else if (type === "error") content.classList.add("popup-error");
   }
 
-  // ข้อความ
   if (message && msgNode) msgNode.textContent = message;
-
   popup.style.display = "flex";
 
-  // กัน event ซ้อน
   if (okBtn) {
     const newOk = okBtn.cloneNode(true);
     okBtn.replaceWith(newOk);
     newOk.addEventListener("click", () => closePopup(id, onClose));
   }
 
-  // ปิดอัตโนมัติ
   if (autoCloseMs && autoCloseMs > 0) {
     setTimeout(() => closePopup(id, onClose), autoCloseMs);
   }
@@ -58,9 +53,7 @@ if (role !== "superadmin") {
 // ===== Helper =====
 function _val(id) { return document.getElementById(id).value.trim(); }
 
-function isEmail(s) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-}
+function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
 
 function cancel() {
   window.location.href = "../../manager/list_admin/M_admin_list.html";
@@ -83,39 +76,26 @@ async function addAdmin() {
     },
   };
 
-  // ---- ตรวจข้อมูล ----
   if (!payload.username || !payload.password || !payload.name || !payload.gender) {
-    openPopup("popup-error", { message: "กรอกชื่อเข้าใช้งาน/รหัสผ่าน/ชื่อ-นามสกุล/เพศ ให้ครบ", type: "error" });
+    openPopup("popup-error", { message: "กรอกข้อมูลให้ครบ", type: "error" });
     return;
   }
   if (payload.password.length < 8) {
-    openPopup("popup-error", { message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร", type: "error" });
+    openPopup("popup-error", { message: "รหัสผ่านต้อง ≥ 8 ตัว", type: "error" });
     return;
   }
-  if (!payload.gmail || !isEmail(payload.gmail)) {
-    openPopup("popup-error", { message: "กรุณากรอกอีเมลให้ถูกต้อง", type: "error" });
-    return;
-  }
-  if (!payload.phone) {
-    openPopup("popup-error", { message: "กรุณากรอกเบอร์โทรศัพท์", type: "error" });
-    return;
-  }
-  const a = payload.address;
-  if (!a.province || !a.district || !a.sub_district || !a.postal_code) {
-    openPopup("popup-error", { message: "กรุณากรอกที่อยู่ให้ครบ (จังหวัด/อำเภอ/ตำบล/รหัสไปรษณีย์)", type: "error" });
+  if (!isEmail(payload.gmail)) {
+    openPopup("popup-error", { message: "อีเมลไม่ถูกต้อง", type: "error" });
     return;
   }
 
-  // ---- เรียก backend (bcrypt เข้ารหัสฝั่ง server.js) ----
   try {
     const response = await fetch(`${API_BASE}/add-user`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-
     const result = await response.json();
-
     if (result.success) {
       openPopup("popup-success", {
         message: "เพิ่มบัญชีแอดมินสำเร็จ",
@@ -127,10 +107,9 @@ async function addAdmin() {
     }
   } catch (err) {
     console.error("Add admin error:", err);
-    openPopup("popup-error", { message: "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", type: "error" });
+    openPopup("popup-error", { message: "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้", type: "error" });
   }
 }
 
-// ===== Expose =====
 window.cancel = cancel;
 window.addAdmin = addAdmin;

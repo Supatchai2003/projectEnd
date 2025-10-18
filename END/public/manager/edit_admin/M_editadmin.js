@@ -1,52 +1,29 @@
-// ===== CONFIG =====
-const API_BASE = "http://localhost:3000"; // เปลี่ยนตามพอร์ต/โดเมน backend
-
-// ===== POPUP helper =====
-function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {
-  const el = document.getElementById(id); if (!el) return;
-  const msg = el.querySelector(".popup-message"); const ct = el.querySelector(".popup-content"); const ok = el.querySelector(".popup-ok");
-  if (ct) { ct.classList.remove("popup-success", "popup-error"); if (type === "success") ct.classList.add("popup-success"); if (type === "error") ct.classList.add("popup-error"); }
-  if (message && msg) msg.textContent = message;
-  el.style.display = "flex";
-  if (ok) { const n = ok.cloneNode(true); ok.replaceWith(n); n.addEventListener("click", () => closePopup(id, onClose)); }
-  if (autoCloseMs) { setTimeout(() => closePopup(id, onClose), autoCloseMs); }
-}
-function closePopup(id, onClose) { const el = document.getElementById(id); if (!el) return; el.style.display = "none"; if (typeof onClose === "function") onClose(); }
+// ===== M_editadmin.js =====
+const API_BASE = (window.API_BASE ?? "").replace(/\/+$/, "");
 
 // ===== ROLE guard =====
 const role = localStorage.getItem("role");
 if (role !== "superadmin") {
-  openPopup("popup-noauth", {
-    type: "error",
-    autoCloseMs: 2000,
-    onClose: () => window.location.href = "../../index.html"
-  });
+  alert("สิทธิ์ไม่เพียงพอ");
+  window.location.href = "../../index.html";
 }
 
 // ===== PARAMS =====
 const userId = new URLSearchParams(window.location.search).get("id");
 
-// ===== Actions =====
-function cancel() { window.location.href = "../../manager/list_admin/M_admin_list.html"; }
-
-// ===== Load user =====
 async function loadAdmin() {
   try {
     const res = await fetch(`${API_BASE}/get-user/${userId}`);
     const json = await res.json();
-    if (!res.ok || !json.success) { openPopup("popup-loadfail", { type: "error", autoCloseMs: null }); return; }
+    if (!res.ok || !json.success) { alert("โหลดข้อมูลไม่สำเร็จ"); return; }
     const d = json.data || {};
 
-    // เติมค่า
     document.getElementById("name").value = d.name || "";
     document.getElementById("username").value = d.username || "";
     document.getElementById("gender").value = d.gender || "";
     document.getElementById("gmail").value = d.gmail || "";
-    // เดิมคุณมีเติม name/username/... แล้ว ให้เติมบรรทัดนี้
-    document.getElementById("phone").value = formatThaiPhone(d.phone || "");
-    document.getElementById("hireday").value = (d.hireday_text || "-");
-
-
+    document.getElementById("phone").value = d.phone || "";
+    document.getElementById("hireday").value = d.hireday_text || "-";
 
     const addr = d.address || {};
     document.getElementById("province").value = addr.province || "";
@@ -55,56 +32,27 @@ async function loadAdmin() {
     document.getElementById("postal_code").value = addr.postal_code || "";
   } catch (err) {
     console.error(err);
-    openPopup("popup-error", { message: "โหลดข้อมูลไม่สำเร็จ", type: "error", autoCloseMs: null });
+    alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
   }
 }
-function formatThaiPhone(s) {
-  const d = String(s || "").replace(/\D/g, "");
-  if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
-  return d; // ถ้าไม่ครบ 10 ก็แสดงตามที่มี
-}
-function digitsOnly(s) {
-  return String(s || "").replace(/\D/g, "");
-}
 
-// ===== Update user =====
-// ===== Update user =====
 async function updateAdmin() {
   const name = document.getElementById("name").value.trim();
-  const username = document.getElementById("username").value.trim(); // ✅ เพิ่ม
+  const username = document.getElementById("username").value.trim();
   const pass = document.getElementById("password").value.trim();
   const gender = document.getElementById("gender").value;
   const gmail = document.getElementById("gmail").value.trim();
-  const phone = digitsOnly(document.getElementById("phone").value);
+  const phone = document.getElementById("phone").value.trim();
   const province = document.getElementById("province").value.trim();
   const district = document.getElementById("district").value.trim();
   const sub_district = document.getElementById("sub_district").value.trim();
   const postal_code = document.getElementById("postal_code").value.trim();
 
-  // 🔸 ตรวจสอบค่าที่จำเป็น
-  if (!name) {
-    return openPopup("popup-error", { message: "กรุณาระบุชื่อ", type: "error" });
-  }
-  if (!username) {
-    return openPopup("popup-error", { message: "กรุณาระบุชื่อเข้าใช้งาน", type: "error" });
-  }
-  if (pass && pass.length < 8) {
-    return openPopup("popup-error", { message: "รหัสผ่านต้อง ≥ 8 ตัวอักษร", type: "error" });
-  }
-  if (gmail && !/^\S+@\S+\.\S+$/.test(gmail)) {
-    return openPopup("popup-error", { message: "อีเมลไม่ถูกต้อง", type: "error" });
-  }
-
-  // 🔹 ใส่ username ลง payload
   const payload = {
-    name,
-    username,        // ✅ เพิ่มตรงนี้
-    gender,
-    gmail,
-    phone,
+    name, username, gender, gmail, phone,
     address: { province, district, sub_district, postal_code }
   };
-  if (pass) payload.password = pass; // ให้ server ทำ bcrypt
+  if (pass) payload.password = pass;
 
   try {
     const res = await fetch(`${API_BASE}/update-user/${userId}`, {
@@ -114,74 +62,34 @@ async function updateAdmin() {
     });
     const json = await res.json();
     if (!res.ok || !json.success) {
-      return openPopup("popup-error", {
-        message: json?.message || "บันทึกไม่สำเร็จ",
-        type: "error",
-        autoCloseMs: null
-      });
+      alert(json.message || "บันทึกไม่สำเร็จ");
+      return;
     }
-    openPopup("popup-save", {
-      type: "success",
-      autoCloseMs: 1500,
-      onClose: () => cancel()
-    });
+    alert("อัปเดตข้อมูลสำเร็จ");
+    window.location.href = "../../manager/list_admin/M_admin_list.html";
   } catch (err) {
     console.error(err);
-    openPopup("popup-error", {
-      message: "บันทึกไม่สำเร็จ",
-      type: "error",
-      autoCloseMs: null
-    });
+    alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
   }
 }
 
-
-// ===== Delete user =====
-// แสดง popup ยืนยันก่อนลบ
-function deleteAdmin() {
-  const popup = document.getElementById("popup-confirm-delete");
-  popup.style.display = "flex";
-
-  const confirmBtn = document.getElementById("btn-confirm-delete");
-  const cancelBtn = document.getElementById("btn-cancel-delete");
-
-  // ล้าง event เดิม (ป้องกันซ้ำ)
-  confirmBtn.onclick = null;
-  cancelBtn.onclick = null;
-
-  confirmBtn.onclick = async () => {
-    popup.style.display = "none";
-    try {
-      const res = await fetch(`${API_BASE}/delete-user/${userId}`, { method: "DELETE" });
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        return openPopup("popup-error", {
-          message: json?.message || "ลบไม่สำเร็จ",
-          type: "error",
-          autoCloseMs: null
-        });
-      }
-
-      openPopup("popup-delete", {
-        type: "success",
-        autoCloseMs: 1200,
-        onClose: () => cancel()
-      });
-    } catch (err) {
-      console.error(err);
-      openPopup("popup-error", { message: "ลบไม่สำเร็จ", type: "error", autoCloseMs: null });
+async function deleteAdmin() {
+  if (!confirm("ต้องการลบบัญชีนี้จริงหรือไม่?")) return;
+  try {
+    const res = await fetch(`${API_BASE}/delete-user/${userId}`, { method: "DELETE" });
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      alert(json.message || "ลบไม่สำเร็จ");
+      return;
     }
-  };
-
-  cancelBtn.onclick = () => {
-    popup.style.display = "none";
-  };
+    alert("ลบผู้ใช้เรียบร้อยแล้ว");
+    window.location.href = "../../manager/list_admin/M_admin_list.html";
+  } catch (err) {
+    console.error(err);
+    alert("ไม่สามารถลบผู้ใช้ได้");
+  }
 }
 
-
-// start
-loadAdmin();
-window.cancel = cancel;
 window.updateAdmin = updateAdmin;
 window.deleteAdmin = deleteAdmin;
+loadAdmin();
