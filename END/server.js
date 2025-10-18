@@ -5,46 +5,14 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
 const bcrypt = require("bcrypt");
-
+const serviceAccount = require("./serviceAccountKey.json");
 // ===================== Firebase =====================
-const saJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-let credential;
-if (saJson) {
-  try { credential = admin.credential.cert(JSON.parse(saJson)); }
-  catch (e) {
-    console.error("Invalid FIREBASE_SERVICE_ACCOUNT_JSON", e);
-    process.exit(1);
-  }
-} else {
-  try {
-    // ใช้เฉพาะตอน dev ในเครื่องเท่านั้น
-    const localKey = require("./serviceAccountKey.json");
-    credential = admin.credential.cert(localKey);
-    console.warn("[WARN] Using local serviceAccountKey.json. Do NOT commit this file!");
-  } catch (e) {
-    console.error("No service account provided. Set FIREBASE_SERVICE_ACCOUNT_JSON env.");
-    process.exit(1);
-  }
-}
-admin.initializeApp({ credential });
-
+admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
 // ===================== App =====================
 const app = express();
-const allowedOrigins = [
-  "https://project-e8970.web.app",
-  "https://project-e8970.firebaseapp.com",
-  process.env.CORS_EXTRA_ORIGIN || ""  // เผื่อมีโดเมนเพิ่ม
-].filter(Boolean);
-
-app.use(cors({
-  origin(origin, cb) {
-    if (!origin) return cb(null, true);     // อนุญาต server-to-server / curl
-    return cb(null, allowedOrigins.includes(origin));
-  },
-  credentials: true,
-}));
+app.use(cors());
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -151,67 +119,124 @@ app.post("/add-user", async (req, res) => {
 app.put("/update-user/:id", async (req, res) => {
   try {
     const { id } = req.params;
+
+    // ดึงข้อมูลที่ส่งมาจาก frontend
     const {
-      name, gender, gmail, phone, password,
-      address = {}    // { province, district, sub_district, postal_code }
+      name,
+      username,
+      password,
+      gender,
+      gmail,
+      phone,
+      address = {},
     } = req.body || {};
 
+    // ✅ ใช้ collection "admin" แทน "users"
+    const col = db.collection("admin");
+    const docRef = col.doc(id);
+    const snap = await docRef.get();
+
+    if (!snap.exists) {
+      return res.status(404).json({ success: false, message: "ไม่พบบัญชีแอดมิน" });
+    }
+
     const updates = {};
-    if (name !== undefined)   updates.name = String(name).trim();
-    if (gender !== undefined) updates.gender = String(gender).trim();
-    if (gmail !== undefined)  updates.gmail = String(gmail).trim();
-    if (phone !== undefined)  updates.phone = String(phone).trim();
 
-    // address (อัปเดตเป็นอ็อบเจ็กต์ย่อย)
+    // --- ฟิลด์พื้นฐาน ---
+    if (typeof name === "string") updates.name = name.trim();
+    if (typeof gender === "string") updates.gender = gender.trim();
+    if (typeof gmail === "string") updates.gmail = gmail.trim();
+    if (typeof phone === "string") updates.phone = phone.trim();
+
+    // --- ที่อยู่ ---
     const addr = {};
-    if (address.province     !== undefined) addr.province     = String(address.province).trim();
-    if (address.district     !== undefined) addr.district     = String(address.district).trim();
-    if (address.sub_district !== undefined) addr.sub_district = String(address.sub_district).trim();
-    if (address.postal_code  !== undefined) addr.postal_code  = String(address.postal_code).trim();
-    if (Object.keys(addr).length) updates.address = addr;
+    if (typeof address.province === "string") addr.province = address.province.trim();
+    if (typeof address.district === "string") addr.district = address.district.trim();
+    if (typeof address.sub_district === "string") addr.sub_district = address.sub_district.trim();
+    if (typeof address.postal_code === "string") addr.postal_code = address.postal_code.trim();
+    if (Object.keys(addr).length > 0) updates.address = addr;
 
-    // ถ้ามีรหัสผ่านใหม่ → hash
-    if (password) {
-      if (String(password).length < 8) {
-        return res.status(400).json({ success:false, message:"รหัสผ่านต้อง ≥ 8 ตัวอักษร" });
+    // --- ✅ อัปเดตชื่อเข้าใช้งาน (username) ---
+    if (typeof username === "string" && username.trim()) {
+      const newU = username.trim();
+
+      // ตรวจว่ามีคนใช้ username ซ้ำไหม (ยกเว้นตัวเอง)
+      const dupQ = await col.where("username", "==", newU).limit(1).get();
+      if (!dupQ.empty && dupQ.docs[0].id !== id) {
+        return res.status(409).json({ success: false, message: "ชื่อผู้ใช้นี้ถูกใช้แล้ว" });
       }
-      const hash = await bcrypt.hash(String(password), 10);
-      updates.password = hash;
+
+      updates.username = newU;
     }
 
-    if (!Object.keys(updates).length) {
-      return res.json({ success:true, message:"ไม่มีข้อมูลที่ต้องอัปเดต" });
+    // --- ✅ ถ้ามี password ใหม่ให้แฮชก่อนเก็บ ---
+    if (typeof password === "string" && password.trim()) {
+      if (password.length < 8) {
+        return res.status(400).json({ success: false, message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร" });
+      }
+      const hashed = await bcrypt.hash(password, 10);
+      updates.password = hashed;
     }
 
-    await db.collection("admin").doc(id).update(updates);
-    res.json({ success:true, message:"updated" });
-  } catch (e) {
-    console.error("update-user error:", e);
-    res.status(500).json({ success:false, message:"server error" });
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: "ไม่มีข้อมูลที่ต้องการอัปเดต" });
+    }
+
+    // --- บันทึกการเปลี่ยนแปลง ---
+    await docRef.update(updates);
+    return res.json({ success: true, message: "อัปเดตข้อมูลแอดมินสำเร็จ", data: updates });
+
+  } catch (err) {
+    console.error("Update admin error:", err);
+    return res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในเซิร์ฟเวอร์" });
   }
 });
 
+
+
+// ถ้ายังไม่มี get-user
 // ถ้ายังไม่มี get-user
 app.get("/get-user/:id", async (req,res)=>{
   try{
     const doc = await db.collection("admin").doc(req.params.id).get();
     if(!doc.exists) return res.status(404).json({success:false,message:"not found"});
     const d = doc.data();
-    res.json({ success:true, data:{
-      id: doc.id,
-      username: d.username || "",
-      name: d.name || "",
-      role: d.role || "",
-      gender: d.gender || "",
-      gmail: d.gmail || "",
-      phone: d.phone || "",
-      address: d.address || {}
-    }});
+
+    // แปลง hireday -> ตัวหนังสือ + timestamp (ms)
+    let hireday_text = "";
+    let hireday_ts = null;
+    if (d.hireday && typeof d.hireday.toDate === "function") {
+      const dd = d.hireday.toDate();
+      hireday_ts = dd.getTime();
+      hireday_text = dd.toLocaleDateString("th-TH", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+    }
+
+    res.json({
+      success:true,
+      data:{
+        id: doc.id,
+        username: d.username || "",
+        name: d.name || "",
+        role: d.role || "",
+        gender: d.gender || "",
+        gmail: d.gmail || "",
+        phone: d.phone || "",
+        address: d.address || {},
+        // ✅ ส่งออกทั้งแบบข้อความและเวลา (เผื่อเอาไปใช้ต่อ)
+        hireday_text,
+        hireday_ts
+      }
+    });
   }catch(e){
     console.error("get-user error:",e);
     res.status(500).json({success:false,message:"server error"});
   }
 });
+
 
 
 // Delete admin
@@ -431,11 +456,125 @@ app.get("/admins/:id", async (req, res) => {
     res.status(500).json({ success:false, message:"server error" });
   }
 });
+// ตัวอย่าง endpoint: รวม image_size_kb ทั้งหมดของ detections
+app.get("/devices/:docId/usage", async (req, res) => {
+  try {
+    const { docId } = req.params;
+    const col = db.collection("Raspberry_pi").doc(docId).collection("detections");
+
+    let sum = 0;
+    // ดึงทีละหน้า (ถ้าข้อมูลเยอะ) — ตัวอย่างแบบง่าย: ดึงทั้งหมดในครั้งเดียว
+    const snap = await col.get();
+    snap.forEach(doc => {
+      const data = doc.data() || {};
+      const kb = Number(data.image_size_kb ?? data.image_sizeKB ?? data.size_kb ?? 0);
+      if (!Number.isNaN(kb)) sum += kb;
+    });
+
+    res.json({ success: true, sum_kb: sum });
+  } catch (e) {
+    console.error("usage error:", e);
+    res.status(500).json({ success: false, message: "ไม่สามารถคำนวณพื้นที่ได้" });
+  }
+});
+
+// ===================== History APIs =====================
+// GET /history/time?month=1-12&year=ค.ศ.
+// ดึงประวัติแบบ "รายวัน-เวลา" รวมทุกอุปกรณ์ในเดือน/ปีที่เลือก
+app.get("/history/time", async (req, res) => {
+  try {
+    const month = parseInt(String(req.query.month || ""), 10); // 1..12
+    const year  = parseInt(String(req.query.year  || ""), 10); // ค.ศ.
+    if (!month || !year || month < 1 || month > 12) {
+      return res.status(400).json({ success:false, message:"กรุณาระบุ month (1-12) และ year (คริสต์ศักราช)" });
+    }
+
+    const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
+    const end   = new Date(year, month,     1, 0, 0, 0, 0);
+
+    // 1) ดึงรายการอุปกรณ์ทั้งหมด (จะกรองก็ได้ แต่ที่นี่รวมทุกตัว)
+    const devicesSnap = await db.collection("Raspberry_pi").get();
+
+    const items = [];
+    for (const devDoc of devicesSnap.docs) {
+      const devId = devDoc.id;
+      const col = db.collection("Raspberry_pi").doc(devId).collection("detections");
+
+      // ----- รอบ 1: ลอง query ด้วย field 'timestamp'
+      let detSnap = null;
+      try {
+        detSnap = await col
+          .where("timestamp", ">=", admin.firestore.Timestamp.fromDate(start))
+          .where("timestamp", "<",  admin.firestore.Timestamp.fromDate(end))
+          .orderBy("timestamp", "asc")
+          .get();
+      } catch (_) {}
+
+      // ----- รอบ 2: ถ้า query แรกไม่ได้/ว่าง ลองด้วย 'createdAt'
+      if (!detSnap || detSnap.empty) {
+        try {
+          detSnap = await col
+            .where("createdAt", ">=", admin.firestore.Timestamp.fromDate(start))
+            .where("createdAt", "<",  admin.firestore.Timestamp.fromDate(end))
+            .orderBy("createdAt", "asc")
+            .get();
+        } catch (err) {
+          console.error(`[history] query createdAt error (${devId}):`, err);
+          detSnap = null;
+        }
+      }
+
+      if (!detSnap || detSnap.empty) continue;
+
+      detSnap.forEach(d => {
+        const data = d.data() || {};
+
+        // แปลงเวลาเป็น JS Date
+        let dt =
+          (data.timestamp && typeof data.timestamp.toDate === "function" && data.timestamp.toDate()) ||
+          (data.createdAt && typeof data.createdAt.toDate === "function" && data.createdAt.toDate()) ||
+          (typeof data.captured_at_epoch === "number" ? new Date(data.captured_at_epoch * 1000) : null);
+
+        if (!dt) return;
+
+        // กรณีใหม่: detected_objects[] -> แตกทุกชนิด
+        if (Array.isArray(data.detected_objects) && data.detected_objects.length > 0) {
+          data.detected_objects.forEach(obj => {
+            items.push({
+              deviceId: devId,
+              type: obj?.type || "-",
+              ts: dt.getTime()
+            });
+          });
+          return;
+        }
+
+        // กรณีเดิม: field 'type' เดี่ยว
+        if (data.type) {
+          items.push({
+            deviceId: devId,
+            type: data.type,
+            ts: dt.getTime()
+          });
+        }
+      });
+    }
+
+    // เรียงตามเวลาเผื่อ safety
+    items.sort((a, b) => a.ts - b.ts);
+
+    return res.json({ success:true, data: items });
+  } catch (e) {
+    console.error("GET /history/time error:", e);
+    return res.status(500).json({ success:false, message:"server error" });
+  }
+});
+
+
 
 // ===================== Static (ถ้าต้องการเสิร์ฟไฟล์หน้าเว็บ) =====================
 app.use(express.static(path.join(__dirname, "public")));
 
 // ===================== Start =====================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(3000, () => console.log("Server running on http://localhost:3000"));
 // -------- END/server.js --------

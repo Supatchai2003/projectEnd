@@ -262,3 +262,37 @@ select:focus {
 .popup-ok.ghost:hover {
   background: #084059;
 }
+/* --- Fix Thai text clipping in inputs/selects --- */
+input,
+select {
+  line-height: 1.6;          /* เพิ่มช่องไฟแนวตั้งให้ฟอนต์ไทย */
+  padding: 14px 18px;        /* ขยาย padding เล็กน้อย */
+  min-height: 48px;          /* กันไม่ให้เตี้ยเกินไป */
+  overflow: visible;         /* ป้องกันการตัดส่วนบน/ล่าง */
+  vertical-align: middle;    /* จัด baseline ให้พอดี */
+}
+
+/* ปรับ placeholder ให้ไม่ทับขอบ */
+input::placeholder {
+  line-height: 1.6;
+  opacity: .8;
+}
+
+/* ปรับ label/หัวข้อกันโดนบีบ */
+label { line-height: 1.35; }
+
+.page-title {
+  line-height: 1.2;
+  margin-top: 6px;           /* กันหัวข้อไม่ชนขอบบน */
+}
+
+/* ปุ่มให้สูงขึ้นเล็กน้อย เผื่อข้อความ 2 ภาษา */
+.btn { min-height: 44px; line-height: 1.3; }
+
+/* บางเบราว์เซอร์ (เช่น Chromium บน Windows) จะเว้นขอบ select แปลก ๆ */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-clip: padding-box;
+}

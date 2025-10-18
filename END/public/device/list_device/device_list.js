@@ -1,5 +1,5 @@
 // ===== Base URL ของ backend =====
-const API_BASE = "https://project-e8970.web.app";
+const API_BASE = "http://localhost:3000";
 
 // ===== Popup Helper (เหมือนเดิม) =====
 function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {
@@ -33,6 +33,11 @@ function closePopup(id, onClose) {
   if (!popup) return;
   popup.style.display = "none";
   if (typeof onClose === "function") onClose();
+}
+function hideConfirmPopup() {
+  // ปิดเฉพาะ popup ยืนยันการลบ โดยไม่ไปเรียก onClose (ไม่ลบ)
+  const p = document.getElementById("popup-confirm");
+  if (p) p.style.display = "none";
 }
 
 // ===== UI/State =====
@@ -143,12 +148,49 @@ function getQueryParam(name) {
   return url.searchParams.get(name);
 }
 
-// ===== โหลดอุปกรณ์ (เรนเดอร์ให้เหมือนภาพ) =====
+// ---- ค่าคงที่พื้นที่รวมต่อเครื่อง ----
+const TOTAL_GB = 15;
+const KB_PER_GB = 1024 * 1024;  // 1 GB = 1,048,576 KB
+const TOTAL_KB = TOTAL_GB * KB_PER_GB;
+
+// ดึง "พื้นที่ที่ใช้ไป (KB)" โดยรวม image_size_kb ของทุก detection
+async function fetchUsedKb(docId) {
+  // 1) พยายามเรียก endpoint แบบสรุป (ถ้ามีที่ฝั่ง backend)
+  try {
+    const res = await fetch(`${API_BASE}/devices/${encodeURIComponent(docId)}/usage`);
+    if (res.ok) {
+      const j = await res.json();
+      if (j && j.success && typeof j.sum_kb === "number") return j.sum_kb;
+    }
+  } catch (_) { }
+
+  // 2) ถ้าไม่มี endpoint สรุป ให้ fallback มาดึงรายการแล้วบวกรวมหน้าเว็บ
+  try {
+    const res = await fetch(`${API_BASE}/devices/${encodeURIComponent(docId)}/detections?fields=image_size_kb`);
+    if (res.ok) {
+      const j = await res.json();
+      if (j && j.success && Array.isArray(j.data)) {
+        let sum = 0;
+        for (const d of j.data) {
+          const kb = Number(
+            d.image_size_kb ?? d.image_sizeKB ?? d.size_kb ?? 0
+          );
+          if (!Number.isNaN(kb)) sum += kb;
+        }
+        return sum;
+      }
+    }
+  } catch (_) { }
+
+  return 0;
+}
+
+// ===== โหลดอุปกรณ์ (คำนวณหลอดพื้นที่จาก detections) =====
 async function loadDevices() {
   const container = document.getElementById("device-list");
   container.innerHTML = "";
 
-  const wantId = getQueryParam("id"); // รองรับการเปิดด้วย id เดียว
+  const wantId = getQueryParam("id");
 
   try {
     let json;
@@ -169,11 +211,28 @@ async function loadDevices() {
       }
     }
 
+    // ดึง usage (KB) ของทุกเครื่องแบบขนาน เพื่อให้ไว
+    const devices = json.data || [];
+    const usagesKb = await Promise.all(
+      devices.map(d => fetchUsedKb(d.docId ?? d.id))
+    );
+
     let index = 1;
-    (json.data || []).forEach((item) => {
-      const used = Number(item.used) || 0;
-      const total = Number(item.total) || 1;
-      const usedPercent = Math.max(0, Math.min(100, Math.round((used / total) * 100)));
+    devices.forEach((item, i) => {
+      const usedKb = usagesKb[i] || 0;
+      // ===== คำนวณเปอร์เซ็นต์แบบละเอียด และให้มีขั้นต่ำ 1% =====
+      const percentFloat = (usedKb / TOTAL_KB) * 100;
+      // ถ้ามีการใช้งาน > 0 แต่ < 1% ให้แสดงอย่างน้อย 1%
+      const usedPercent = Math.min(
+        100,
+        percentFloat > 0 && percentFloat < 1 ? 1 : Number(percentFloat.toFixed(2))
+      );
+
+      // แสดงค่าที่อ่านง่าย
+      const usedGbStr = (usedKb / KB_PER_GB).toFixed(2);
+      const totalGbStr = TOTAL_GB.toString();
+
+
       const displayId = item.id ?? item.docId;
       const online = String(item.status || "").toLowerCase() === "online";
 
@@ -187,16 +246,16 @@ async function loadDevices() {
 
         <div class="progress-wrap">
           <div class="progress-bar">
-            <div class="progress-used" style="width:${usedPercent}%"></div>
+            <div class="progress-used" style="width:${usedPercent}%;" title="${usedPercent}%"></div>
           </div>
         </div>
 
         <div class="progress-legends">
           <div class="legend-left">
             <span><span class="dot dot-gray"></span>พื้นที่จัดเก็บ</span>
-            <span><span class="dot dot-red"></span>ใช้ไปแล้ว</span>
+            <span><span class="dot dot-red"></span>ใช้ไปแล้ว ${usedGbStr} GB</span>
           </div>
-          <div>พื้นที่ทั้งหมด</div>
+          <div>พื้นที่ทั้งหมด ${totalGbStr} GB</div>
         </div>
 
         <div class="device-footer">
@@ -210,6 +269,7 @@ async function loadDevices() {
     openPopup("popup-error", { message: "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", type: "error" });
   }
 }
+
 
 // ===== หน้าอื่น ๆ =====
 function goHome() {
@@ -247,8 +307,15 @@ function logout() {
 
 // ===== เริ่มทำงาน =====
 document.addEventListener("DOMContentLoaded", () => {
-  // ใส่ role บนมุมซ้ายให้ด้วย
-  const role = localStorage.getItem("role");
-  document.getElementById("role-label").innerText = role ? role : "User";
+  const role = localStorage.getItem("role") || "User";
+  document.getElementById("role-label").innerText = role;
+
+  // 🔹 ถ้าเป็น ADMIN หรือ SUPERADMIN → ซ่อนปุ่มย้อนกลับ
+  if (role.toLowerCase() === "admin") {
+    const backBtn = document.querySelector(".back-btn");
+    if (backBtn) backBtn.style.display = "none";
+  }
+
   loadDevices();
 });
+

@@ -9,7 +9,7 @@ document.getElementById("loginForm").addEventListener("submit", async function (
  // ตรวจสอบว่ากรอกครบหรือไม่
   try {
     // ส่งคำขอไปยังเซิร์ฟเวอร์
-    const response = await fetch("https://project-e8970.web.app", {
+    const response = await fetch("http://localhost:3000/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })

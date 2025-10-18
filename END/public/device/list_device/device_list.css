@@ -56,7 +56,7 @@ body {
   margin:0;
   font-size:34px;
   font-weight:900;
-  color:#0b1f2a;
+  color:floralwhite;
   text-shadow:0 2px 4px rgba(255,255,255,.4);
 }
 
@@ -135,7 +135,7 @@ body {
 .role-label {
   font-weight: 900;
   margin-left: 6px;
-  color: #0b5a6a
+  color: #ff0808
 }
 
 .mascot-card {
@@ -184,11 +184,15 @@ body {
 }
 
 .list-card__header h2 {
-  margin: 0;
+  text-align: center;    /* จัดข้อความให้อยู่ตรงกลาง */
+  margin: 0 auto;        /* จัด margin ซ้าย–ขวาให้อยู่กลาง */
   font-size: 28px;
   font-weight: 900;
-  color: #073642
+  color: #073642;
+  display: block;        /* ให้แน่ใจว่า h2 เป็น block element */
+  width: 100%;           /* ครอบพื้นที่ทั้งบรรทัดเพื่อจัดกลางได้แน่นอน */
 }
+
 
 .header-actions {
   display: flex;
@@ -284,25 +288,20 @@ body {
 
 .progress-bar {
   width: 100%;
-  height: 18px;
+  height: 12px;               /* ความสูงของหลอด */
+  background: #e0f7fa;        /* สีพื้นหลัง */
   border-radius: 999px;
-  background: var(--barGray);
-  position: relative;
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, .12);
+  margin-top: 6px;
 }
 
 .progress-used {
-  position: absolute;
-  left: 0;
-  top: 0;
   height: 100%;
-  width: 0;
-  background: linear-gradient(90deg, #ff7a7a, #ff5f5f, #ff7a7a);
-  background-size: 200% 100%;
+  background: #ff6b6b;        /* สีของหลอดที่ใช้ไป */
   border-radius: 999px;
-  animation: barflow 3.2s linear infinite;
+  transition: width 0.4s ease;
 }
+
 
 @keyframes barflow {
   0% {
@@ -520,4 +519,202 @@ body {
   .fab-add {
     right: 18px
   }
+}
+/* ===== Logout Popup (glass + icon + pill button) ===== */
+#popup-logout {
+  display: none;                   /* คุมการแสดงผลด้วย JS ตามเดิม */
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 36, 56, .45);
+  backdrop-filter: blur(4px);
+  justify-content: center;
+  align-items: center;
+}
+
+#popup-logout .popup-content{
+  position: relative;
+  min-width: 340px;
+  border-radius: 22px;
+  padding: 26px 26px 22px;
+  text-align: center;
+
+  /* glassy gradient + soft border */
+  background: linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.74));
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: 0 20px 48px rgba(0,0,0,.28);
+
+  animation: logout-pop .18s ease;
+}
+
+/* วงกลมไอคอนด้านบน */
+#popup-logout .popup-content::before{
+  content: "🔓";                   /* เปลี่ยนเป็น ✓ ก็ได้: "✓" */
+  position: absolute;
+  left: 50%;
+  top: -26px;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-weight: 900;
+  color: #0b3b49;
+
+  background:
+    radial-gradient(80% 80% at 30% 30%, #ffffff, #dff7fb);
+  border: 1px solid rgba(14,165,177,.35);
+  box-shadow: 0 12px 24px rgba(0,0,0,.18);
+}
+
+/* ข้อความ */
+#popup-logout #popup-message{
+  margin: 10px 0 14px;
+  font-weight: 900;
+  font-size: 18px;
+  color: #064a57;
+}
+
+/* ปุ่ม OK เม็ดยา */
+#popup-logout #popup-ok{
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 28px;
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: .2px;
+  color: #fff;
+  cursor: pointer;
+
+  background: linear-gradient(180deg, #2ac3d3, #0ea5b1);
+  box-shadow: 0 14px 30px rgba(14,165,177,.35);
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+}
+
+#popup-logout #popup-ok:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 18px 36px rgba(14,165,177,.42);
+}
+#popup-logout #popup-ok:active{
+  transform: translateY(0);
+}
+
+/* แอนิเมชันเด้งนุ่ม ๆ */
+@keyframes logout-pop{
+  from{ transform: translateY(6px) scale(.98); opacity:.8 }
+  to  { transform: translateY(0)   scale(1);    opacity:1 }
+}
+
+/* โหมดลดการเคลื่อนไหว */
+@media (prefers-reduced-motion: reduce){
+  #popup-logout .popup-content{ animation: none !important; }
+}
+/* ===== Popup: เพิ่มอุปกรณ์ (สวยขึ้น) ===== */
+#popup.popup-overlay{
+  display: none;                 /* คุมด้วย JS ตามเดิม */
+  background: rgba(15,36,56,.45);
+  backdrop-filter: blur(5px) saturate(120%);
+}
+
+#popup .popup-box{
+  position: relative;
+  min-width: 360px;
+  max-width: 92vw;
+  border-radius: 22px;
+  padding: 26px 24px 22px;
+  text-align: center;
+
+  /* glassy gradient + soft border */
+  background: linear-gradient(180deg, rgba(255,255,255,.90), rgba(255,255,255,.78));
+  border: 1px solid rgba(255,255,255,.75);
+  box-shadow: 0 22px 50px rgba(0,0,0,.28);
+
+  animation: popup-zoom-in .18s ease;
+}
+
+/* หัวข้อ */
+#popup .popup-box h3{
+  margin: 0 0 14px;
+  font-weight: 900;
+  font-size: 20px;
+  color: #064a57;
+  letter-spacing: .3px;
+}
+
+/* ช่องกรอก Serial */
+#popup #piid{
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #d6e3ea;
+  outline: none;
+  font: inherit;
+  background: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+  transition: border-color .15s ease, box-shadow .15s ease, transform .05s ease;
+}
+#popup #piid:focus{
+  border-color: var(--primary);
+  box-shadow: 0 0 0 5px rgba(14,165,177,.15);
+}
+#popup #piid::placeholder{
+  color: #8aa3b2;
+}
+
+/* ปุ่ม */
+#popup .popup-buttons{
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+#popup .popup-buttons .popup-ok,
+#popup .popup-buttons .popup-cancel{
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: .2px;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(0,0,0,.18);
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+}
+
+/* ปุ่ม “ยืนยัน” โทนเขียวฟ้า */
+#popup .popup-buttons .popup-ok{
+  color: #fff;
+  background: linear-gradient(180deg, var(--primary-2), var(--primary));
+}
+#popup .popup-buttons .popup-ok:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 18px 36px rgba(14,165,177,.35);
+}
+#popup .popup-buttons .popup-ok:active{
+  transform: translateY(0);
+}
+
+/* ปุ่ม “ยกเลิก” โทนส้มแดงนุ่ม */
+#popup .popup-buttons .popup-cancel{
+  color: #fff;
+  background: linear-gradient(180deg, #ff8b7b, #ff5252);
+}
+#popup .popup-buttons .popup-cancel:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 18px 36px rgba(255,82,82,.35);
+}
+
+/* ไอแอนิเมชันเด้ง */
+@keyframes popup-zoom-in{
+  from{ transform: translateY(6px) scale(.98); opacity:.85 }
+  to  { transform: translateY(0)   scale(1);    opacity:1 }
 }

@@ -13,6 +13,7 @@
     <!-- ซ้าย: มาสคอต -->
     <section class="left-panel">
       <div class="mascot-card">
+        <h1 class="page-title">แก้ไขบัญชีแอดมิน</h1>
         <!-- แก้ path รูปตามโปรเจ็กต์ -->
         <img src="../../image/fb29d362-12e4-454b-99c9-b4373181a90c.png" alt="Mascot" />
       </div>
@@ -20,14 +21,13 @@
 
     <!-- ขวา: ฟอร์มแก้ไข -->
     <section class="right-panel">
-      <h1 class="page-title">แก้ไขบัญชีแอดมิน</h1>
 
       <div class="form-card">
         <label>ชื่อ-นามสกุล</label>
         <input id="name" type="text" placeholder="ชื่อ-นามสกุล" />
 
-        <label>ชื่อผู้ใช้งาน</label>
-        <input id="username" type="text" disabled />
+        <label>ชื่อเข้าใช้งาน</label>
+        <input id="username" type="text" />
 
         <label>รหัสผ่าน (ใส่เมื่อจะเปลี่ยน, ≥ 8 ตัว)</label>
         <input id="password" type="password" placeholder="ปล่อยว่างถ้าไม่เปลี่ยน" />
@@ -44,7 +44,7 @@
           </div>
           <div>
             <label>เบอร์โทรศัพท์</label>
-            <input id="phone" type="tel" placeholder="เช่น 062-5437777" />
+            <input id="phone" type="tel"  />
           </div>
         </div>
 
@@ -72,6 +72,9 @@
             <input id="postal_code" type="text" inputmode="numeric" />
           </div>
         </div>
+        <label>วันที่เริ่มทำงาน</label>
+        <input id="hireday" type="text" readonly style="background:#66d3e4; font-weight:bold; color:#000000;">
+
 
         <p class="note">* เซิร์ฟเวอร์จะทำการ hash รหัสผ่านด้วย bcrypt และอัปเดตเฉพาะค่าที่แก้ไข</p>
 

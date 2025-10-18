@@ -1,5 +1,5 @@
 // ===== CONFIG =====
-const API_BASE = "https://project-e8970.web.app"; // เปลี่ยนตามพอร์ต/โดเมน backend
+const API_BASE = "http://localhost:3000"; // เปลี่ยนตามพอร์ต/โดเมน backend
 
 // ===== POPUP helper =====
 function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {
@@ -42,7 +42,11 @@ async function loadAdmin() {
     document.getElementById("username").value = d.username || "";
     document.getElementById("gender").value = d.gender || "";
     document.getElementById("gmail").value = d.gmail || "";
-    document.getElementById("phone").value = d.phone || "";
+    // เดิมคุณมีเติม name/username/... แล้ว ให้เติมบรรทัดนี้
+    document.getElementById("phone").value = formatThaiPhone(d.phone || "");
+    document.getElementById("hireday").value = (d.hireday_text || "-");
+
+
 
     const addr = d.address || {};
     document.getElementById("province").value = addr.province || "";
@@ -54,25 +58,50 @@ async function loadAdmin() {
     openPopup("popup-error", { message: "โหลดข้อมูลไม่สำเร็จ", type: "error", autoCloseMs: null });
   }
 }
+function formatThaiPhone(s) {
+  const d = String(s || "").replace(/\D/g, "");
+  if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  return d; // ถ้าไม่ครบ 10 ก็แสดงตามที่มี
+}
+function digitsOnly(s) {
+  return String(s || "").replace(/\D/g, "");
+}
 
+// ===== Update user =====
 // ===== Update user =====
 async function updateAdmin() {
   const name = document.getElementById("name").value.trim();
+  const username = document.getElementById("username").value.trim(); // ✅ เพิ่ม
   const pass = document.getElementById("password").value.trim();
   const gender = document.getElementById("gender").value;
   const gmail = document.getElementById("gmail").value.trim();
-  const phone = document.getElementById("phone").value.trim();
+  const phone = digitsOnly(document.getElementById("phone").value);
   const province = document.getElementById("province").value.trim();
   const district = document.getElementById("district").value.trim();
   const sub_district = document.getElementById("sub_district").value.trim();
   const postal_code = document.getElementById("postal_code").value.trim();
 
-  if (!name) { return openPopup("popup-error", { message: "กรุณาระบุชื่อ", type: "error" }); }
-  if (pass && pass.length < 8) { return openPopup("popup-error", { message: "รหัสผ่านต้อง ≥ 8 ตัวอักษร", type: "error" }); }
-  if (gmail && !/^\S+@\S+\.\S+$/.test(gmail)) { return openPopup("popup-error", { message: "อีเมลไม่ถูกต้อง", type: "error" }); }
+  // 🔸 ตรวจสอบค่าที่จำเป็น
+  if (!name) {
+    return openPopup("popup-error", { message: "กรุณาระบุชื่อ", type: "error" });
+  }
+  if (!username) {
+    return openPopup("popup-error", { message: "กรุณาระบุชื่อเข้าใช้งาน", type: "error" });
+  }
+  if (pass && pass.length < 8) {
+    return openPopup("popup-error", { message: "รหัสผ่านต้อง ≥ 8 ตัวอักษร", type: "error" });
+  }
+  if (gmail && !/^\S+@\S+\.\S+$/.test(gmail)) {
+    return openPopup("popup-error", { message: "อีเมลไม่ถูกต้อง", type: "error" });
+  }
 
+  // 🔹 ใส่ username ลง payload
   const payload = {
-    name, gender, gmail, phone,
+    name,
+    username,        // ✅ เพิ่มตรงนี้
+    gender,
+    gmail,
+    phone,
     address: { province, district, sub_district, postal_code }
   };
   if (pass) payload.password = pass; // ให้ server ทำ bcrypt
@@ -85,14 +114,27 @@ async function updateAdmin() {
     });
     const json = await res.json();
     if (!res.ok || !json.success) {
-      return openPopup("popup-error", { message: json?.message || "บันทึกไม่สำเร็จ", type: "error", autoCloseMs: null });
+      return openPopup("popup-error", {
+        message: json?.message || "บันทึกไม่สำเร็จ",
+        type: "error",
+        autoCloseMs: null
+      });
     }
-    openPopup("popup-save", { type: "success", autoCloseMs: 1500, onClose: () => cancel() });
+    openPopup("popup-save", {
+      type: "success",
+      autoCloseMs: 1500,
+      onClose: () => cancel()
+    });
   } catch (err) {
     console.error(err);
-    openPopup("popup-error", { message: "บันทึกไม่สำเร็จ", type: "error", autoCloseMs: null });
+    openPopup("popup-error", {
+      message: "บันทึกไม่สำเร็จ",
+      type: "error",
+      autoCloseMs: null
+    });
   }
 }
+
 
 // ===== Delete user =====
 // แสดง popup ยืนยันก่อนลบ

@@ -44,11 +44,12 @@
 
       <!-- ปุ่มย้อนกลับ -->
       <button class="back-btn" onclick="goHome()">ย้อนกลับ</button>
+      <button class="fab-add" title="เพิ่มอุปกรณ์" onclick="showPopup()">＋</button>
     </main>
   </div>
 
   <!-- ปุ่ม + ล่างขวา -->
-  <button class="fab-add" title="เพิ่มอุปกรณ์" onclick="showPopup()">＋</button>
+  
 
   <!-- Popup เพิ่มอุปกรณ์ -->
   <div class="popup-overlay" id="popup">
@@ -109,7 +110,8 @@
 
   <div id="popup-confirm" class="popup">
     <div class="popup-content popup-error">
-      <p class="popup-message">ยืนยันการดำเนินการนี้?</p>
+      <p class="popup-message">ยืนยันการลบอุปกรณ์หรือไม่?</p>
+      <button class="popup-cancel" onclick="hideConfirmPopup()">ยกเลิก</button>
       <button class="popup-ok">ตกลง</button>
     </div>
   </div>

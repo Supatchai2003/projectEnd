@@ -1,47 +1,32 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import {
-  getFirestore, collection, getDocs, query, where, orderBy, Timestamp
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDL8P7ovbVGD6gsxyzc8wyUvYk4rIJHEZ8",
-  authDomain: "project-e8970.firebaseapp.com",
-  projectId: "project-e8970",
-  storageBucket: "project-e8970.appspot.com",
-  messagingSenderId: "429996520936",
-  appId: "1:429996520936:web:cbfe3e363119fc3f01605d"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// history_time.js — ดึงข้อมูลจาก server.js เท่านั้น (ไม่มี Firebase SDK ฝั่งหน้าเว็บ)
+const API_BASE = "http://localhost:3000"; // ถ้าไฟล์ html ถูกเสิร์ฟจากโดเมนเดียวกับ server.js ใช้ "" ได้
+// ถ้า backend อยู่คนละที่ เช่น http://localhost:3000 ให้ใส่ URL ตรงนี้
 
 const monthSelect = document.getElementById("monthSelect");
-const yearSelect = document.getElementById("yearSelect");
-const tableBody = document.getElementById("timeTableBody");
-const modeSelect = document.getElementById("modeSelect");
-const modeLabel = document.getElementById("modeLabel");
-const backBtn = document.getElementById("backBtn");
+const yearSelect  = document.getElementById("yearSelect");
+const tableBody   = document.getElementById("timeTableBody");
+const modeSelect  = document.getElementById("modeSelect");
+const backBtn     = document.getElementById("backBtn");
 
-// Init months/years
+// ===== Init months/years =====
 const now = new Date();
 for (let i = 0; i < 12; i++) {
   const option = document.createElement("option");
-  option.value = i + 1;
+  option.value = i + 1; // 1-12
   option.textContent = new Date(2000, i, 1).toLocaleString("th-TH", { month: "long" });
   if (i === now.getMonth()) option.selected = true;
   monthSelect.appendChild(option);
 }
-
 const thisYear = now.getFullYear();
 for (let y = thisYear - 2; y <= thisYear; y++) {
   const option = document.createElement("option");
-  option.value = y;
-  option.textContent = y + 543;
+  option.value = y; // ค.ศ.
+  option.textContent = y + 543; // แสดง พ.ศ.
   if (y === thisYear) option.selected = true;
   yearSelect.appendChild(option);
 }
 
-// Event Listeners
+// ===== Events =====
 monthSelect.addEventListener("change", loadTimeData);
 yearSelect.addEventListener("change", loadTimeData);
 
@@ -55,68 +40,7 @@ backBtn.addEventListener("click", () => {
   window.location.href = "../../device/list_device/device_list.html";
 });
 
-// Load Time Data
-async function loadTimeData() {
-  const month = parseInt(monthSelect.value, 10);     // 1-12
-  const year  = parseInt(yearSelect.value, 10);      // ค.ศ.
-  tableBody.innerHTML = "";
-
-  // สร้างช่วงเวลา [start, end) ของเดือนที่เลือก
-  const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
-  const end   = new Date(year, month, 1, 0, 0, 0, 0);
-
-  try {
-    // 1) ดึงรายชื่ออุปกรณ์ทั้งหมดในคอลเลกชัน Raspberry_pi
-    const devicesSnap = await getDocs(collection(db, "Raspberry_pi"));
-    if (devicesSnap.empty) {
-      tableBody.innerHTML = `<tr><td colspan="3">ไม่พบอุปกรณ์</td></tr>`;
-      return;
-    }
-
-    let found = 0;
-
-    // 2) ไล่อ่าน subcollection detections ของแต่ละอุปกรณ์ ด้วยช่วงเวลา
-    for (const deviceDoc of devicesSnap.docs) {
-      const deviceId = deviceDoc.id;
-
-      const detectionsCol = collection(db, "Raspberry_pi", deviceId, "detections");
-      const qDet = query(
-        detectionsCol,
-        where("timestamp", ">=", Timestamp.fromDate(start)),
-        where("timestamp", "<",  Timestamp.fromDate(end)),
-        orderBy("timestamp", "asc")
-      );
-
-      const detSnap = await getDocs(qDet);
-
-      detSnap.forEach(doc => {
-        const data = doc.data();
-        const ts = data.timestamp?.toDate?.();
-        if (!ts) return;
-
-        const date = ts.toLocaleDateString("th-TH");
-        const time = ts.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
-
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${date}</td>
-          <td>${time}</td>
-          <td>${translateType(data.type)}</td>`;
-        tableBody.appendChild(row);
-        found++;
-      });
-    }
-
-    if (found === 0) {
-      tableBody.innerHTML = `<tr><td colspan="3">ไม่พบข้อมูลในเดือนที่เลือก</td></tr>`;
-    }
-  } catch (err) {
-    console.error("อ่านข้อมูลล้มเหลว:", err);
-    tableBody.innerHTML = `<tr><td colspan="3">เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>`;
-  }
-}
-
-// แปลประเภทสัตว์จากภาษาอังกฤษเป็นไทย
+// ===== Helpers =====
 function translateType(type) {
   const dict = {
     snake: "งู",
@@ -124,8 +48,51 @@ function translateType(type) {
     centipede: "ตะขาบ",
     lizard: "ตัวเงินตัวทอง"
   };
-  
-  return dict[type] || type;
+  return dict[type] || type || "-";
+}
+
+function fmtDateTime(tsMs) {
+  const ts = new Date(tsMs);
+  const date = ts.toLocaleDateString("th-TH");
+  const time = ts.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+  return { date, time };
+}
+
+// ===== Load Time Data from server.js =====
+async function loadTimeData() {
+  const month = parseInt(monthSelect.value, 10); // 1-12
+  const year  = parseInt(yearSelect.value, 10);  // ค.ศ.
+  tableBody.innerHTML = "";
+
+  try {
+    const url = `${API_BASE}/history/time?month=${month}&year=${year}`;
+    const res = await fetch(url, { method: "GET" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || "server return error");
+
+    const rows = json.data || [];
+    if (rows.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="3">ไม่พบข้อมูลในเดือนที่เลือก</td></tr>`;
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    for (const r of rows) {
+      const { date, time } = fmtDateTime(r.ts);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${date}</td>
+        <td>${time}</td>
+        <td>${translateType(r.type)}</td>
+      `;
+      frag.appendChild(tr);
+    }
+    tableBody.appendChild(frag);
+  } catch (err) {
+    console.error("โหลดข้อมูลล้มเหลว:", err);
+    tableBody.innerHTML = `<tr><td colspan="3">เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>`;
+  }
 }
 
 // เรียกครั้งแรก

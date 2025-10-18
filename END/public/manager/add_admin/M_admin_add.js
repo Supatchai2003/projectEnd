@@ -1,5 +1,5 @@
 // ===== API base URL =====
-const API_BASE = "https://project-e8970.web.app";
+const API_BASE = "http://localhost:3000";
 
 // ===== Popup Helper =====
 function openPopup(id, { message, type, onClose, autoCloseMs = 2000 } = {}) {

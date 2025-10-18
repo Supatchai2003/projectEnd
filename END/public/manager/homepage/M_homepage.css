@@ -140,6 +140,30 @@ header h1 {
   flex-direction: column;
   align-items: center;
 }
+.mascot-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.role-text {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #064a57;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.role-text i {
+  color: #0e7c86;
+  font-size: 20px;
+}
+
+#role {
+  color: #ff4c4c; /* สีข้อความ role (แดงนิดๆสำหรับ superadmin) */
+  font-weight: 900;
+  text-transform: capitalize;
+}
 
 .mascot-box img {
   width: 100%;
@@ -207,36 +231,101 @@ header h1 {
 }
 
 /* ===== Popup ===== */
-.popup {
-  display: none;
+/* ===== Logout Popup (glass + icon + pill button) ===== */
+#popup {
+  display: none;                   /* คุมการแสดงผลด้วย JS ตามเดิม */
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, .5);
+  background: rgba(15, 36, 56, .45);
+  backdrop-filter: blur(4px);
   justify-content: center;
   align-items: center;
 }
 
-.popup-content {
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
+#popup .popup-content{
+  position: relative;
+  min-width: 340px;
+  border-radius: 22px;
+  padding: 26px 26px 22px;
   text-align: center;
-  box-shadow: var(--shadow-lg);
-  max-width: 320px;
-  animation: pop .16s ease;
+
+  /* glassy gradient + soft border */
+  background: linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.74));
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: 0 20px 48px rgba(0,0,0,.28);
+
+  animation: logout-pop .18s ease;
 }
 
-#popup-ok {
-  margin-top: 10px;
-  padding: 8px 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  background: #243b6b;
-  color: #fff;
-  font-weight: 800;
+/* วงกลมไอคอนด้านบน */
+#popup .popup-content::before{
+  content: "🔓";                   /* เปลี่ยนเป็น ✓ ก็ได้: "✓" */
+  position: absolute;
+  left: 50%;
+  top: -26px;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-weight: 900;
+  color: #0b3b49;
+
+  background:
+    radial-gradient(80% 80% at 30% 30%, #ffffff, #dff7fb);
+  border: 1px solid rgba(14,165,177,.35);
+  box-shadow: 0 12px 24px rgba(0,0,0,.18);
 }
+
+/* ข้อความ */
+#popup #popup-message{
+  margin: 10px 0 14px;
+  font-weight: 900;
+  font-size: 18px;
+  color: #064a57;
+}
+
+/* ปุ่ม OK เม็ดยา */
+#popup #popup-ok{
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 28px;
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: .2px;
+  color: #fff;
+  cursor: pointer;
+
+  background: linear-gradient(180deg, #2ac3d3, #0ea5b1);
+  box-shadow: 0 14px 30px rgba(14,165,177,.35);
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+}
+
+#popup #popup-ok:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 18px 36px rgba(14,165,177,.42);
+}
+#popup #popup-ok:active{
+  transform: translateY(0);
+}
+
+/* แอนิเมชันเด้งนุ่ม ๆ */
+@keyframes logout-pop{
+  from{ transform: translateY(6px) scale(.98); opacity:.8 }
+  to  { transform: translateY(0)   scale(1);    opacity:1 }
+}
+
+/* โหมดลดการเคลื่อนไหว */
+@media (prefers-reduced-motion: reduce){
+  #popup .popup-content{ animation: none !important; }
+}
+
 
 @keyframes pop {
   from {

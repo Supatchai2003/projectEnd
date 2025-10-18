@@ -1,49 +1,50 @@
-// ----- Firebase config -----
-const firebaseConfig = {
-  apiKey: "AIzaSyDL8P7ovbVGD6gsxyzc8wyUvYk4rIJHEZ8",
-  authDomain: "project-e8970.firebaseapp.com",
-  projectId: "project-e8970",
-  storageBucket: "project-e8970.firebasestorage.app",
-  messagingSenderId: "429996520936",
-  appId: "1:429996520936:web:cbfe3e363119fc3f01605d"
-};
+// ======= history_summary.js (ใช้ข้อมูลจาก server.js) =======
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+// ถ้ามีการประกาศไว้ที่ไฟล์รวม ให้ใช้ตัวนั้นก่อน
+// เช่น window.API_BASE = "https://your-backend.onrender.com";
+const API_BASE = (window.API_BASE || "").replace(/\/+$/,""); // ตัด / ท้ายสุด
 
 // ----- DOM -----
 const monthSelect = document.getElementById('monthSelect');
-const yearSelect = document.getElementById('yearSelect');
-const tableBody = document.getElementById('summaryTableBody');
-const modeSelect = document.getElementById('modeSelect');
+const yearSelect  = document.getElementById('yearSelect');
+const tableBody   = document.getElementById('summaryTableBody');
+const modeSelect  = document.getElementById('modeSelect');
 
-// ----- สัตว์ที่ต้องแสดงผลเสมอ -----
+// ชนิดที่ต้องมีในตารางเสมอ (ภาษาไทย)
 const requiredAnimals = ["งู", "ตะขาบ", "หนู", "ตัวเงินตัวทอง"];
 
-// แมปชื่อสัตว์: รองรับทั้งไทย/อังกฤษ/คำพ้อง
+// แมพชื่อจากค่าที่ backend ส่งมา -> ชื่อไทยที่จะแสดง
 const typeMap = {
+  // ไทย
+  "งู": "งู",
+  "ตะขาบ": "ตะขาบ",
+  "หนู": "หนู",
+  "ตัวเงินตัวทอง": "ตัวเงินตัวทอง",
+  // อังกฤษ/คำพ้อง
   "snake": "งู",
-
   "centipede": "ตะขาบ",
-
   "mouse": "หนู",
-
-  "lizard": "ตัวเงินตัวทอง",
+  "monitor lizard": "ตัวเงินตัวทอง",
+  "water monitor": "ตัวเงินตัวทอง",
+  "varanus": "ตัวเงินตัวทอง",
+  "lizard": "ตัวเงินตัวทอง"
 };
 
-// เติมเดือนและปี แล้วโหลดข้อมูล
+// ---------- init ----------
 initMonthOptions();
 initYearOptions();
-monthSelect.addEventListener("change", loadSummary);
-yearSelect.addEventListener("change", loadSummary);
+
+monthSelect.addEventListener("change", loadSummaryFromServer);
+yearSelect.addEventListener("change", loadSummaryFromServer);
 modeSelect?.addEventListener("change", () => {
   if (modeSelect.value === "time") {
     window.location.href = "history_time.html";
   }
 });
-window.onload = loadSummary;
 
-// ----- ฟังก์ชันเติมเดือน -----
+window.addEventListener("load", loadSummaryFromServer);
+
+// เติมเดือน (ค่า value เป็นชื่อเดือนอังกฤษเพื่อคำนวณ index)
 function initMonthOptions() {
   const months = [
     { value: "January", text: "มกราคม" },
@@ -59,46 +60,36 @@ function initMonthOptions() {
     { value: "November", text: "พฤศจิกายน" },
     { value: "December", text: "ธันวาคม" }
   ];
-
-  const thisMonth = new Date().getMonth(); // 0-11
+  const thisMonth = new Date().getMonth(); // 0..11
   months.forEach((m, i) => {
-    const option = document.createElement("option");
-    option.value = m.value;      // ใช้ชื่อเดือนอังกฤษเพื่อคำนวณ index
-    option.textContent = m.text; // แสดงผลภาษาไทย
-    if (i === thisMonth) option.selected = true;
-    monthSelect.appendChild(option);
+    const opt = document.createElement("option");
+    opt.value = m.value;
+    opt.textContent = m.text;
+    if (i === thisMonth) opt.selected = true;
+    monthSelect.appendChild(opt);
   });
 }
 
-// ----- ฟังก์ชันเติมปี (แสดงผลเป็น พ.ศ. แต่ value เป็น ค.ศ.) -----
+// เติมปี (value = ค.ศ. แต่โชว์เป็น พ.ศ.)
 function initYearOptions() {
-  const currentYearCE = new Date().getFullYear(); // ค.ศ.
+  const currentYearCE = new Date().getFullYear();
   for (let y = currentYearCE; y >= currentYearCE - 5; y--) {
-    const option = document.createElement("option");
-    option.value = String(y);      // ค.ศ. สำหรับ query
-    option.textContent = y + 543;  // แสดงผลเป็น พ.ศ.
-    yearSelect.appendChild(option);
+    const opt = document.createElement("option");
+    opt.value = String(y);
+    opt.textContent = y + 543;
+    yearSelect.appendChild(opt);
   }
   yearSelect.value = String(currentYearCE);
 }
 
-// ----- โหลดสรุปข้อมูล -----
-async function loadSummary() {
-  // ✅ ใช้ค่า ค.ศ. ตรงๆ จาก value (อย่าลบ 543)
-  const yearCE = parseInt(yearSelect.value, 10);
+// ---------- ดึงข้อมูลจาก server.js แล้วสรุป ----------
+async function loadSummaryFromServer() {
+  const yearCE    = parseInt(yearSelect.value, 10);
   const monthName = monthSelect.value;
-  const monthIndex = new Date(`${monthName} 1, ${yearCE}`).getMonth(); // 0-11
+  const monthIdx  = new Date(`${monthName} 1, ${yearCE}`).getMonth(); // 0..11
+  const monthForApi = monthIdx + 1; // API ต้องการ 1..12
 
-  const start = new Date(yearCE, monthIndex, 1);
-  const end = new Date(yearCE, monthIndex + 1, 1);
-
-  const startTimestamp = firebase.firestore.Timestamp.fromDate(start);
-  const endTimestamp = firebase.firestore.Timestamp.fromDate(end);
-
-  // เคลียร์ตารางก่อน
-  tableBody.innerHTML = "";
-
-  // เตรียมนับจำนวนแต่ละชนิด
+  // เตรียมตัวนับ
   const counts = {
     "งู": 0,
     "ตะขาบ": 0,
@@ -106,43 +97,44 @@ async function loadSummary() {
     "ตัวเงินตัวทอง": 0
   };
 
-  try {
-    const devicesSnap = await db.collection("Raspberry_pi").get();
+  // ล้างตารางก่อน
+  tableBody.innerHTML = `
+    <tr><td colspan="2" style="text-align:center">กำลังโหลดข้อมูล...</td></tr>
+  `;
 
-    const tasks = [];
-    devicesSnap.forEach(doc => {
-      const deviceId = doc.id;
-      const q = db.collection("Raspberry_pi").doc(deviceId)
-        .collection("detections")
-        .where("timestamp", ">=", startTimestamp)
-        .where("timestamp", "<", endTimestamp)
-        .get()
-        .then(res => {
-          res.forEach(d => {
-            const rawType = (d.data().type ?? "").toString().trim().toLowerCase();
-            const mapped = typeMap[rawType];
-            if (mapped && counts.hasOwnProperty(mapped)) {
-              counts[mapped] += 1;
-            }
-          });
-        });
-      tasks.push(q);
+  try {
+    const url = `${API_BASE}/history/time?month=${monthForApi}&year=${yearCE}`;
+    const res = await fetch(url, { method: "GET" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    // รูปแบบที่ server.js ส่ง:
+    // { success: true, data: [ { deviceId, type, ts }, ... ] }
+    const rows = Array.isArray(json?.data) ? json.data : [];
+
+    rows.forEach(item => {
+      const raw = String(item?.type || "").trim().toLowerCase();
+      const mapped = typeMap[raw] ?? typeMap[raw.replaceAll("_", " ")] ?? null;
+      if (mapped && counts.hasOwnProperty(mapped)) {
+        counts[mapped] += 1;
+      }
     });
 
-    await Promise.all(tasks);
   } catch (err) {
-    console.error("โหลดข้อมูลผิดพลาด:", err);
+    console.error("โหลดจาก server ล้มเหลว:", err);
   } finally {
-    // เรนเดอร์ผลลัพธ์เสมอ (แม้ไม่มีข้อมูล)
-    requiredAnimals.forEach(animal => {
-      const row = document.createElement("tr");
-      row.innerHTML = `<td>${animal}</td><td>${counts[animal] ?? 0} ครั้ง</td>`;
-      tableBody.appendChild(row);
+    // เรนเดอร์ผลลัพธ์ (แม้โหลดล้มเหลวก็แสดง 0)
+    tableBody.innerHTML = "";
+    requiredAnimals.forEach(nameTH => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${nameTH}</td><td>${counts[nameTH] ?? 0} ครั้ง</td>`;
+      tableBody.appendChild(tr);
     });
   }
 }
 
-// ----- ปุ่มย้อนกลับ -----
+// ปุ่มย้อนกลับ
 function goBack() {
+  // ปรับ path ตามโปรเจกต์จริงของคุณ
   window.location.href = "../list_device/device_list.html";
 }
