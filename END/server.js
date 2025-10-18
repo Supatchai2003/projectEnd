@@ -209,6 +209,38 @@ app.get("/get-user/:id", async (req, res) => {
     res.status(500).json({ success: false, message: "server error" });
   }
 });
+// === Admin list APIs (เพิ่มเข้าไป) ===
+function mapAdminDoc(doc) {
+  const d = doc.data();
+  return { id: doc.id, username: d.username || "", role: d.role || "" };
+}
+
+app.get("/admins", async (req, res) => {
+  try {
+    const { role } = req.query; // ตัวเลือก: กรองตาม role
+    let ref = db.collection("admin");
+    if (role) ref = ref.where("role", "==", role);
+
+    const snap = await ref.get();
+    const items = snap.docs.map(mapAdminDoc);
+    res.json({ success: true, data: items });
+  } catch (e) {
+    console.error("GET /admins error:", e);
+    res.status(500).json({ success: false, message: "server error" });
+  }
+});
+
+app.get("/admins/:id", async (req, res) => {
+  try {
+    const doc = await db.collection("admin").doc(req.params.id).get();
+    if (!doc.exists) return res.status(404).json({ success: false, message: "not found" });
+    res.json({ success: true, data: mapAdminDoc(doc) });
+  } catch (e) {
+    console.error("GET /admins/:id error:", e);
+    res.status(500).json({ success: false, message: "server error" });
+  }
+});
+
 
 // --- Delete Admin ---
 app.delete("/delete-user/:id", async (req, res) => {
