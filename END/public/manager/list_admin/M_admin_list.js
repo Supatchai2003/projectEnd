@@ -6,7 +6,7 @@ async function loadAdmins() {
   container.innerHTML = "";
 
   try {
-    const res = await fetch(`${API_BASE}/admin?role=admin`);
+    const res = await fetch(`${API_BASE}/user?role=admin`);
     const { success, data } = await res.json();
 
     if (!success || !data.length) {
