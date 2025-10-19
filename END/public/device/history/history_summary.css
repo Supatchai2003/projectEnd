@@ -225,6 +225,7 @@ tbody td:last-child::after {
   }
 }
 
+
 /* ====== Motion Care ====== */
 @media (prefers-reduced-motion: reduce) {
   * {
