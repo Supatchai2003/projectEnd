@@ -205,22 +205,11 @@ select:focus {
   cursor: pointer
 }
 
-@media (max-width:980px) {
-  .page-wrap {
-    grid-template-columns: 1fr
-  }
-
-  .left-panel {
-    padding: 22px
-  }
-
-  .right-panel {
-    padding: 22px
-  }
-
-  .grid-2 {
-    grid-template-columns: 1fr
-  }
+@media (max-width: 980px){
+  .page-wrap{ grid-template-columns: 1fr; }
+  .left-panel{ padding:22px }
+  .mascot-card img{ width:min(260px,70vw) }
+  .right-panel{ padding:22px }
 }
 
 .popup-warning {

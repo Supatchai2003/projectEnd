@@ -89,6 +89,31 @@ async function deleteAdmin() {
     alert("ไม่สามารถลบผู้ใช้ได้");
   }
 }
+function cancelEdit() {
+  // ถ้ามี role ให้แยกปลายทาง; ไม่มี role ให้กลับหน้าแรก
+  const role = localStorage.getItem("role");
+  if (role === "superadmin") {
+    window.location.href = "../../manager/list_admin/M_admin_list.html";
+  } else if (role === "admin") {
+    window.location.href = "../../device/list_device/device_list.html";
+  } else {
+    window.location.href = "../../index.html";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("btn-cancel");
+  if (btn) {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();   // กัน form กลืน event
+      cancelEdit();
+    });
+  }
+});
+
+// เผื่อเรียกจาก inline ได้
+window.cancelEdit = cancelEdit;
+
 
 window.updateAdmin = updateAdmin;
 window.deleteAdmin = deleteAdmin;
