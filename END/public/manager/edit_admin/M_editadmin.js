@@ -1,23 +1,53 @@
-// ===== M_editadmin.js =====
+// ====== CONFIG ======
 const API_BASE = (window.API_BASE ?? "").replace(/\/+$/, "");
 
-// ===== ROLE guard =====
-const role = localStorage.getItem("role");
-if (role !== "superadmin") {
-  alert("สิทธิ์ไม่เพียงพอ");
-  window.location.href = "../../index.html";
+// ====== POPUP SYSTEM ======
+function showPopup(id, message = null) {
+  const popup = document.getElementById(id);
+  if (!popup) return;
+  if (message) {
+    const msgElem = popup.querySelector(".popup-message");
+    if (msgElem) msgElem.textContent = message;
+  }
+  popup.style.display = "flex";
+  const okBtn = popup.querySelector(".popup-ok");
+  if (okBtn) okBtn.onclick = () => (popup.style.display = "none");
 }
 
-// ===== PARAMS =====
+function showConfirmPopup(onConfirm) {
+  const popup = document.getElementById("popup-confirm-delete");
+  popup.style.display = "flex";
+
+  const confirmBtn = document.getElementById("btn-confirm-delete");
+  const cancelBtn = document.getElementById("btn-cancel-delete");
+
+  confirmBtn.onclick = () => {
+    popup.style.display = "none";
+    onConfirm();
+  };
+  cancelBtn.onclick = () => (popup.style.display = "none");
+}
+
+// ====== CHECK ROLE ======
+const role = localStorage.getItem("role");
+if (role !== "superadmin") {
+  showPopup("popup-noauth");
+  setTimeout(() => (window.location.href = "../../index.html"), 1500);
+}
+
+// ====== LOAD ADMIN DATA ======
 const userId = new URLSearchParams(window.location.search).get("id");
 
 async function loadAdmin() {
   try {
     const res = await fetch(`${API_BASE}/get-user/${userId}`);
     const json = await res.json();
-    if (!res.ok || !json.success) { alert("โหลดข้อมูลไม่สำเร็จ"); return; }
-    const d = json.data || {};
+    if (!res.ok || !json.success) {
+      showPopup("popup-loadfail", "โหลดข้อมูลไม่สำเร็จ");
+      return;
+    }
 
+    const d = json.data || {};
     document.getElementById("name").value = d.name || "";
     document.getElementById("username").value = d.username || "";
     document.getElementById("gender").value = d.gender || "";
@@ -32,10 +62,11 @@ async function loadAdmin() {
     document.getElementById("postal_code").value = addr.postal_code || "";
   } catch (err) {
     console.error(err);
-    alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+    showPopup("popup-error", "เกิดข้อผิดพลาดในการโหลดข้อมูล");
   }
 }
 
+// ====== UPDATE ADMIN ======
 async function updateAdmin() {
   const name = document.getElementById("name").value.trim();
   const username = document.getElementById("username").value.trim();
@@ -60,37 +91,45 @@ async function updateAdmin() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
+
     const json = await res.json();
     if (!res.ok || !json.success) {
-      alert(json.message || "บันทึกไม่สำเร็จ");
+      showPopup("popup-error", json.message || "บันทึกไม่สำเร็จ");
       return;
     }
-    alert("อัปเดตข้อมูลสำเร็จ");
-    window.location.href = "../../manager/list_admin/M_admin_list.html";
+    showPopup("popup-save", "อัปเดตข้อมูลสำเร็จ");
+    setTimeout(() => {
+      window.location.href = "../../manager/list_admin/M_admin_list.html";
+    }, 1500);
   } catch (err) {
     console.error(err);
-    alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
+    showPopup("popup-error", "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
   }
 }
 
+// ====== DELETE ADMIN ======
 async function deleteAdmin() {
-  if (!confirm("ต้องการลบบัญชีนี้จริงหรือไม่?")) return;
-  try {
-    const res = await fetch(`${API_BASE}/delete-user/${userId}`, { method: "DELETE" });
-    const json = await res.json();
-    if (!res.ok || !json.success) {
-      alert(json.message || "ลบไม่สำเร็จ");
-      return;
+  showConfirmPopup(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/delete-user/${userId}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showPopup("popup-error", json.message || "ลบไม่สำเร็จ");
+        return;
+      }
+      showPopup("popup-delete", "ลบผู้ใช้แล้ว");
+      setTimeout(() => {
+        window.location.href = "../../manager/list_admin/M_admin_list.html";
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      showPopup("popup-error", "ไม่สามารถลบผู้ใช้ได้");
     }
-    alert("ลบผู้ใช้เรียบร้อยแล้ว");
-    window.location.href = "../../manager/list_admin/M_admin_list.html";
-  } catch (err) {
-    console.error(err);
-    alert("ไม่สามารถลบผู้ใช้ได้");
-  }
+  });
 }
+
+// ====== CANCEL ======
 function cancelEdit() {
-  // ถ้ามี role ให้แยกปลายทาง; ไม่มี role ให้กลับหน้าแรก
   const role = localStorage.getItem("role");
   if (role === "superadmin") {
     window.location.href = "../../manager/list_admin/M_admin_list.html";
@@ -105,16 +144,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("btn-cancel");
   if (btn) {
     btn.addEventListener("click", (e) => {
-      e.preventDefault();   // กัน form กลืน event
+      e.preventDefault();
       cancelEdit();
     });
   }
 });
 
-// เผื่อเรียกจาก inline ได้
 window.cancelEdit = cancelEdit;
-
-
 window.updateAdmin = updateAdmin;
 window.deleteAdmin = deleteAdmin;
 loadAdmin();
